@@ -11,7 +11,7 @@ class GenerateTestsDialog(
 ) : DialogWrapper(project) {
 
     private val frameworkCombo = JComboBox(arrayOf("JUnit 5 + RestAssured", "Karate"))
-    private val location = JTextField("org.openprojectx.api")
+    private val location = JTextField("src/test/resources/karate")
     private val clsField = JTextField("OpenApiGeneratedTests")
     private val baseUrlField = JTextField("")
     private val notesArea = JTextArea(5, 40)

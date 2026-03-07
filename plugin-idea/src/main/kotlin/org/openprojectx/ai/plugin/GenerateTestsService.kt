@@ -1,8 +1,10 @@
 package org.openprojectx.ai.plugin
 
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.openprojectx.ai.plugin.core.Framework
 import org.openprojectx.ai.plugin.core.GenerationRequest
@@ -55,21 +57,44 @@ class GenerateTestsService(private val project: Project) {
         cls: String,
         code: String
     ) {
-        // Simplest: create file under same directory as contract (or user-selected later)
-        val dir = contractFile.parent
+        val projectRoot = project.guessProjectDir()
+            ?: throw IllegalStateException("Cannot resolve project root")
+
+        val normalizedLocation = location
+            .trim()
+            .replace('\\', '/')
+            .removePrefix("/")
+            .removeSuffix("/")
 
         val fileName = when (framework) {
             Framework.REST_ASSURED -> "$cls.java"
-            Framework.KARATE -> "$cls.feature" // or split: feature + runner
+            Framework.KARATE -> "$cls.feature"
         }
+
+        var targetFile: VirtualFile? = null
 
         WriteCommandAction.runWriteCommandAction(project) {
-            val existing = dir.findChild(fileName)
-            val target = existing ?: dir.createChildData(this, fileName)
+            val targetDir = if (normalizedLocation.isBlank()) {
+                projectRoot
+            } else {
+                VfsUtil.createDirectoryIfMissing(projectRoot, normalizedLocation)
+                    ?: throw IllegalStateException("Cannot create target directory: $normalizedLocation")
+            }
+
+            val existing = targetDir.findChild(fileName)
+            val target = existing ?: targetDir.createChildData(this, fileName)
             target.setBinaryContent(code.toByteArray(Charsets.UTF_8))
+            targetFile = target
         }
 
-//        todo  call Notifications.notifyFileGenerated( )
-//
+        val createdFile = targetFile ?: return
+        val relativePath = createdFile.path.removePrefix(projectRoot.path).removePrefix("/")
+
+        Notifications.notifyFileGenerated(
+            project = project,
+            title = "Test file generated",
+            message = relativePath,
+            file = createdFile
+        )
     }
 }
