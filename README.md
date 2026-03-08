@@ -6,37 +6,75 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-0.1.3-orange)](https://github.com/OpenProjectX/ai-test-plugin/releases)
 
+*Contract-driven test generation powered by AI*
+
 </div>
 
-An IntelliJ IDEA plugin that empowers **Test-Driven Development (TDD)** and **contract-based testing** using Large Language Models. Automatically generate high-quality API tests from OpenAPI specifications.
+## The Contract is the Source of Truth
+
+This plugin embraces **Contract-Based Testing** as a first-class paradigm. The contract defines the expected behavior of your service — and tests should derive from it automatically.
+
+### Supported Contract Types
+
+| Contract Type | Status | Description |
+|---------------|--------|-------------|
+| **OpenAPI / Swagger** | ✅ Stable | REST API specifications (YAML/JSON) |
+| **gRPC Protobuf** | 🔜 Planned | Protocol Buffer service definitions |
+| **Java Interface** | 🔜 Planned | Java class/interface contracts |
+| **GraphQL Schema** | 🔜 Future | GraphQL type definitions |
+
+> *The plugin is architected to be extensible — adding a new contract type requires implementing a new parser and prompt template.*
 
 ## Features
 
-- **Contract-Based Test Generation** - Generate tests directly from OpenAPI (Swagger) specs
-- **Multi-Framework Support** - Generate tests in JUnit 5 + Rest Assured or Karate DSL
-- **AI-Powered** - Leverages any OpenAI-compatible LLM endpoint
-- **Intelligent Test Coverage** - Generates happy path + negative test cases
-- **IDE Integration** - Non-intrusive notification banner on OpenAPI files
+- **Contract-First Testing** — Tests are generated from the contract, not the implementation
+- **Multi-Framework Support** — JUnit 5 + Rest Assured or Karate DSL
+- **AI-Powered** — Leverages any OpenAI-compatible LLM endpoint
+- **Comprehensive Coverage** — Generates happy path + negative test cases
+- **IDE Integration** — Seamless notification banner on contract files
 
-## Supported Frameworks
+## Why Contract-Based Testing?
 
-| Framework | Description |
-|-----------|-------------|
-| **JUnit 5 + Rest Assured** | Java-based REST API testing with fluent assertions |
-| **Karate DSL** | BDD-style API test automation |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      CONTRACT                                │
+│                  (OpenAPI / Protobuf / ...)                  │
+│                        ⭐ SOURCE OF TRUTH                     │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│              AI Test Generator Plugin                       │
+│         (context-aware prompt engineering)                   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    TESTS                                    │
+│        Rest Assured / Karate / JUnit / Spock ...            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The contract is:
+- **Single source of truth** — No duplication between spec and tests
+- **Version-controlled** — Contract changes trigger test regeneration
+- **Language-agnostic** — Works with any test framework
 
 ## Architecture
 
 ```
 ai-test-plugin/
-├── core/                  # Core domain models & prompt building
-│   └── PromptBuilder.kt   # LLM prompt construction
+├── core/                  # Contract-agnostic core
+│   ├── GenerationRequest.kt
+│   ├── PromptBuilder.kt   # LLM prompt construction
+│   └── Framework.kt       # Test framework abstractions
 ├── llm-client/            # OpenAI-compatible LLM client
 │   └── OpenAiCompatibleProvider.kt
 └── plugin-idea/           # IntelliJ IDEA plugin
     ├── GenerateTestsDialog.kt    # UI configuration
     ├── GenerateTestsService.kt  # Test generation orchestration
-    └── OpenApiEditorNotificationProvider.kt
+    └── contracts/               # Contract type handlers
+        └── openapi/             # OpenAPI parser & heuristics
 ```
 
 ## Installation
@@ -79,61 +117,28 @@ generation:
 ### Environment Variables
 
 - `OPENAI_API_KEY` - Your OpenAI API key (or any OpenAI-compatible provider)
-- Alternatively, use `${ENV_VAR}` syntax in config
+- Use `${ENV_VAR}` syntax in config for secrets
 
 ## Usage
 
-1. Open any `.yaml` or `.json` OpenAPI specification file
+1. Open any contract file (`.yaml`, `.json` for OpenAPI)
 2. A notification banner appears: **"Generate Tests?"**
 3. Click to open the generation dialog
 4. Configure:
    - **Framework** - JUnit 5 + Rest Assured or Karate DSL
    - **Location** - Output directory
    - **Class Name** - Test class/feature name
-   - **Base URL** - Optional API base URL
+   - **Base URL** - Optional API base URL hint
    - **Extra Instructions** - Additional context for the LLM
 5. Click **Generate**
 
-The plugin generates comprehensive test coverage including:
+The plugin analyzes the contract and generates:
 
-- **Happy path tests** for each endpoint
+- **Happy path tests** for each operation/endpoint
 - **Negative tests** for missing required fields
 - **Boundary/type validation** tests
 
-## Development
-
-### Prerequisites
-
-- IntelliJ IDEA 2025.2+ (for development)
-- JDK 17+
-- Gradle 9.x
-
-### Build
-
-```bash
-# Build the plugin JAR
-./gradlew :plugin-idea:buildPlugin
-
-# Build with ZIP distribution
-./gradlew :plugin-idea:assemble
-
-# Run in development IDE
-./gradlew :plugin-idea:runIde
-```
-
-### Publish
-
-```bash
-# Publish to Maven Local
-./gradlew :plugin-idea:publishPluginZipPublicationToMavenLocal
-
-# Publish to Sonatype (requires credentials)
-./gradlew :plugin-idea:publishPluginDistributionPublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository
-```
-
-## Test Frameworks Output
-
-### Rest Assured Example
+### Rest Assured Example (from OpenAPI)
 
 ```java
 package com.example.tests;
@@ -164,28 +169,89 @@ public class UserApiTest {
             .body("id", equalTo(1))
             .body("name", notNullValue());
     }
+
+    @Test
+    void getUser_NotFound() {
+        given()
+            .pathParam("id", 99999)
+        .when()
+            .get("/users/{id}")
+        .then()
+            .statusCode(404);
+    }
 }
 ```
 
 ### Karate DSL Example
 
 ```gherkin
-Feature: User API
+Feature: User API Contract Tests
 
   Background:
-    * url baseUrl
+    * url baseUrl || 'http://localhost:8080'
 
-  Scenario: Get User - Success
+  Scenario: Get user - success
     Given path 'users', 1
     When method get
     Then status 200
-    And match response == { id: 1, name: '#notnull' }
+    And match response == { id: 1, name: '#notnull', email: '#regex[.*@.*]' }
+
+  Scenario: Get user - not found
+    Given path 'users', 99999
+    When method get
+    Then status 404
+    And match response == { code: '#notnull', message: '#string' }
 ```
+
+## Development
+
+### Prerequisites
+
+- IntelliJ IDEA 2025.2+ (for development)
+- JDK 17+
+- Gradle 9.x
+
+### Build Commands
+
+```bash
+# Build the plugin JAR
+./gradlew :plugin-idea:buildPlugin
+
+# Build with ZIP distribution
+./gradlew :plugin-idea:assemble
+
+# Run in development IDE
+./gradlew :plugin-idea:runIde
+```
+
+### Publish
+
+```bash
+# Publish to Maven Local
+./gradlew :plugin-idea:publishPluginZipPublicationToMavenLocal
+
+# Publish to Sonatype (requires credentials)
+./gradlew :plugin-idea:publishPluginDistributionPublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository
+```
+
+## Roadmap
+
+- [ ] **gRPC Protobuf support** — Generate tests from `.proto` files
+- [ ] **Java Interface contracts** — Generate tests from annotated interfaces
+- [ ] **Contract diff detection** — Alert when contract changes affect existing tests
+- [ ] **Test regeneration** — Smart update instead of full overwrite
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+Contributions are welcome! Key areas:
+- New contract type parsers (gRPC, GraphQL, Java)
+- Additional test framework generators (Spock, TestNG)
+- LLM prompt optimization
 
 ## License
 
 Licensed under the Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+---
+
+*Built with ❤️ for the contract-driven testing community*
