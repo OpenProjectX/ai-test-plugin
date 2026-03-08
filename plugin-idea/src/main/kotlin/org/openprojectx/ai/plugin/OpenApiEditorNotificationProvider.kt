@@ -8,6 +8,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotifications
+import com.intellij.util.ui.JBUI
 
 class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNotificationPanel>() {
 
@@ -29,6 +30,8 @@ class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNot
         val state = stateService.getState(file.path)
 
         return EditorNotificationPanel(fileEditor).apply {
+            border = JBUI.Borders.empty(10, 0)
+
             when (state) {
                 GenerationUiState.Idle -> {
                     text = "OpenAPI contract detected"
