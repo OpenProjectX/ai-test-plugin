@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.EditorNotifications
 import org.openprojectx.ai.plugin.core.Framework
 import org.openprojectx.ai.plugin.core.GenerationRequest
 import org.openprojectx.ai.plugin.core.PromptBuilder
@@ -15,8 +16,12 @@ import org.slf4j.LoggerFactory
 class GenerateTestsService(private val project: Project) {
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val notificationState = OpenApiNotificationStateService.getInstance(project)
 
     fun generate(ui: GenerateTestsDialog.UiResult, file: VirtualFile, contractText: String) {
+        notificationState.setState(file.path, GenerationUiState.Generating)
+        EditorNotifications.getInstance(project).updateNotifications(file)
+
         val settings = LlmSettingsLoader.load(project)
         val provider = LlmProviderFactory.create(settings)
 
@@ -49,8 +54,23 @@ class GenerateTestsService(private val project: Project) {
                     cls = ui.className,
                     code = code
                 )
+
+                notificationState.setState(file.path, GenerationUiState.Done)
+                EditorNotifications.getInstance(project).updateNotifications(file)
+
+                ApplicationManager.getApplication().invokeLater {
+                    Thread {
+                        Thread.sleep(3000)
+                        notificationState.clearState(file.path)
+                        ApplicationManager.getApplication().invokeLater {
+                            EditorNotifications.getInstance(project).updateNotifications(file)
+                        }
+                    }.start()
+                }
             } catch (e: Exception) {
                 log.error("Test generation failed:", e)
+                notificationState.clearState(file.path)
+                EditorNotifications.getInstance(project).updateNotifications(file)
                 Notifications.error(project, "Test generation failed:", e.message ?: e.toString())
             }
         }
