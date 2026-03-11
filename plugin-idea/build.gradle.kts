@@ -13,20 +13,20 @@ repositories {
 
 val isCi: Boolean by gradle.extra
 
-val buildPluginZip by tasks.registering(Zip::class) {
+val buildPluginJar by tasks.registering(Zip::class) {
     group = "build"
-    description = "Builds the IntelliJ plugin distribution as ZIP"
+    description = "Builds the IntelliJ plugin distribution as JAR"
 
     archiveBaseName.set(project.name)
     archiveVersion.set(project.version.toString())
-    archiveExtension.set("zip")
+    archiveExtension.set("jar")
     destinationDirectory.set(layout.buildDirectory.dir("distributions"))
 
     from({
         zipTree(tasks.named("buildPlugin").get().outputs.files.singleFile)
     })
 
-    dependsOn(tasks.named("buildPluginJar"))
+    dependsOn(tasks.named("buildPlugin"))
 }
 
 tasks {
@@ -35,25 +35,16 @@ tasks {
         untilBuild.set("253.*")
     }
 
-    buildPlugin {
-        archiveExtension.set("jar")
-    }
-
-    register("buildPluginJar") {
-        group = "build"
-        description = "Builds the IntelliJ plugin distribution as JAR"
-        dependsOn(buildPlugin)
-    }
-
     assemble {
         dependsOn(buildPlugin)
-        dependsOn(buildPluginZip)
+        dependsOn(buildPluginJar)
     }
 }
 
 intellijPlatform {
     publishing {
         token = System.getenv("JETBRAINS_TOKEN")
+//        channels = listOf("stable")
     }
 }
 
@@ -85,11 +76,11 @@ publishing {
             artifactId = "ai-test-plugin"
             version = project.version.toString()
 
-            artifact(tasks.named("buildPlugin")) {
+            artifact(buildPluginJar) {
                 extension = "jar"
             }
 
-            artifact(buildPluginZip) {
+            artifact(tasks.named("buildPlugin")) {
                 classifier = "plugin"
                 extension = "zip"
             }
