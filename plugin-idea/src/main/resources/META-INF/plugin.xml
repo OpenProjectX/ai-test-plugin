@@ -7,6 +7,8 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.vcs</depends>
+    <depends>Git4Idea</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <editorNotificationProvider implementation="org.openprojectx.ai.plugin.OpenApiEditorNotificationProvider"/>
@@ -18,6 +20,15 @@
                 id="OpenProjectX Notifications"
                 displayType="BALLOON"
                 isLogByDefault="true"/>
-
     </extensions>
+
+    <actions>
+        <action
+                id="org.openprojectx.ai.plugin.GenerateCommitMessageAction"
+                class="org.openprojectx.ai.plugin.GenerateCommitMessageAction"
+                text="Generate Commit Message"
+                description="Generate commit message from current git diff using AI">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>

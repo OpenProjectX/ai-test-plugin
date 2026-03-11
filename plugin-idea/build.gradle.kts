@@ -57,7 +57,7 @@ dependencies {
         val version = providers.gradleProperty("platformVersion")
 
         intellijIdea(version)
-        bundledPlugins(listOf("org.jetbrains.plugins.yaml"))
+        bundledPlugins(listOf("org.jetbrains.plugins.yaml","Git4Idea"))
     }
 
     implementation(project(":core"))
