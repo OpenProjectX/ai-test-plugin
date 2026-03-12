@@ -1,0 +1,55 @@
+llm:
+#  provider: openai-compatible
+#  endpoint: https://api.openai.com/v1/chat/completions
+#  apiKeyEnv: OPENAI_API_KEY
+#  model: gpt-4.1
+#  timeoutSeconds: 60
+
+  provider: openai-compatible
+  endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+  model: qwen3-coder-plus
+#  apiKeyEnv: OPENAI_API_KEY
+  apiKey: "sk-your-key"            # optional, prefer env
+  timeoutSeconds: 60
+  # organization: "..."      # optional (if you want)
+
+
+  template:
+    method: POST
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer {{apiKey}}"
+    body: |
+      {
+        "model": "{{model}}",
+        "messages": [
+          { "role": "system", "content": "You generate code only." },
+          { "role": "user", "content": {{{promptJson}}} }
+        ],
+        "temperature": 0.1
+      }
+    responsePath: "$.choices[0].message.content"
+
+
+generation:
+  defaults:
+    framework: karate
+    className: OpenApiGeneratedTests
+    baseUrl: ""
+    notes: ""
+  common:
+    location: src/test/resources/karate
+  frameworks:
+    restassured:
+      location: src/test/java
+      packageName: org.openprojectx.ai.plugin.generated
+    karate:
+      location: src/test/resources/karate
+
+pullRequest:
+  enabled: true
+  createAfterPush: true
+  provider: "bitbucket"
+  tokenEnv: "BITBUCKET_TOKEN"
+  targetBranch: "main"
