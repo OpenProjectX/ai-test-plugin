@@ -6,4 +6,6 @@ dependencies {
     implementation(libs.bundles.kotlinxEcosystem)
     implementation(libs.ktor.client.okhttp)
     implementation("org.yaml:snakeyaml:2.6")
+    implementation("com.github.jknack:handlebars:4.4.0")
+    implementation("com.jayway.jsonpath:json-path:2.9.0")
 }

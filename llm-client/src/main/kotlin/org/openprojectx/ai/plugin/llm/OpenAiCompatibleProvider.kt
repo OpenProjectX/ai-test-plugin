@@ -13,6 +13,11 @@ class OpenAiCompatibleProvider(
 ) : LlmProvider {
 
     override suspend fun generateCode(prompt: String): String {
+        val endpoint = settings.endpoint
+            ?: error("llm.endpoint is required for provider='${settings.provider}'")
+        val apiKey = settings.apiKey
+            ?: error("llm.apiKey or llm.apiKeyEnv is required for provider='${settings.provider}'")
+
         val req = ChatCompletionsRequest(
             model = settings.model,
             messages = listOf(
@@ -22,8 +27,8 @@ class OpenAiCompatibleProvider(
             temperature = 0.1
         )
 
-        val resp: ChatCompletionsResponse = http.post(settings.endpoint) {
-            header(HttpHeaders.Authorization, "Bearer ${settings.apiKey}")
+        val resp: ChatCompletionsResponse = http.post(endpoint) {
+            header(HttpHeaders.Authorization, "Bearer $apiKey")
             contentType(ContentType.Application.Json)
             setBody(req)
         }.body()

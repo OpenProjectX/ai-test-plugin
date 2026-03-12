@@ -15,6 +15,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.openprojectx.ai.plugin.llm.OpenAiCompatibleProvider
+import org.openprojectx.ai.plugin.llm.TemplateLlmProvider
 import java.util.concurrent.TimeUnit
 
 object LlmProviderFactory {
@@ -40,6 +41,6 @@ object LlmProviderFactory {
             }
         }
 
-        return OpenAiCompatibleProvider(http, settings)
+        return TemplateLlmProvider(http, settings)
     }
 }

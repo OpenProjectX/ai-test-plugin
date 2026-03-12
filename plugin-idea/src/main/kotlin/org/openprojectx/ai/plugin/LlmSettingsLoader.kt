@@ -4,6 +4,7 @@ package org.openprojectx.ai.plugin
 import com.intellij.openapi.project.Project
 import org.openprojectx.ai.plugin.core.Framework
 import org.openprojectx.ai.plugin.llm.LlmSettings
+import org.openprojectx.ai.plugin.llm.TemplateLlmConfig
 import org.yaml.snakeyaml.Yaml
 import java.io.File
 
@@ -36,14 +37,9 @@ object LlmSettingsLoader {
         val llm = (root["llm"] as? Map<*, *>) ?: error("Invalid YAML: missing top-level 'llm' object")
 
         val provider = (llm["provider"] as? String)?.trim().orEmpty().ifEmpty { "openai-compatible" }
-        if (provider != "openai-compatible" && provider != "aliyun") {
-            error("Unsupported llm.provider='$provider'.")
-        }
-
-        val endpoint = (llm["endpoint"] as? String)?.trim()
-            ?: error("Invalid YAML: llm.endpoint is required")
 
         val model = (llm["model"] as? String)?.trim()
+            ?.takeIf { it.isNotEmpty() }
             ?: error("Invalid YAML: llm.model is required")
 
         val apiKeyDirect = (llm["apiKey"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
@@ -53,8 +49,7 @@ object LlmSettingsLoader {
             apiKeyDirect != null -> apiKeyDirect
             apiKeyEnv != null -> System.getenv(apiKeyEnv)?.takeIf { it.isNotBlank() }
                 ?: error("Env var '$apiKeyEnv' is not set (needed for llm.apiKeyEnv).")
-
-            else -> error("Invalid YAML: one of llm.apiKey or llm.apiKeyEnv is required")
+            else -> null
         }
 
         val timeoutSeconds = when (val v = llm["timeoutSeconds"]) {
@@ -62,13 +57,41 @@ object LlmSettingsLoader {
             is String -> v.trim().toLongOrNull()
             null -> 60L
             else -> error("Invalid YAML: llm.timeoutSeconds must be a number or string number")
+        } ?: 60L
+
+        val endpoint = (llm["endpoint"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+
+        val template = (llm["template"] as? Map<*, *>)?.let { templateMap ->
+            val method = (templateMap["method"] as? String)?.trim().orEmpty().ifEmpty { "POST" }
+            val url = (templateMap["url"] as? String)?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: error("Invalid YAML: llm.template.url is required")
+            val body = templateMap["body"] as? String
+                ?: error("Invalid YAML: llm.template.body is required")
+            val responsePath = (templateMap["responsePath"] as? String)?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: error("Invalid YAML: llm.template.responsePath is required")
+
+            val headers = ((templateMap["headers"] as? Map<*, *>) ?: emptyMap<Any?, Any?>())
+                .mapKeys { (k, _) -> k?.toString() ?: error("Invalid YAML: llm.template.headers contains null key") }
+                .mapValues { (_, v) -> v?.toString() ?: "" }
+
+            TemplateLlmConfig(
+                method = method,
+                url = url,
+                headers = headers,
+                body = body,
+                responsePath = responsePath
+            )
         }
 
         return LlmSettings(
-            endpoint = endpoint,
-            apiKey = apiKey,
+            provider = provider,
             model = model,
-            timeoutSeconds = timeoutSeconds!!
+            timeoutSeconds = timeoutSeconds,
+            apiKey = apiKey,
+            endpoint = endpoint,
+            template = template
         )
     }
 
