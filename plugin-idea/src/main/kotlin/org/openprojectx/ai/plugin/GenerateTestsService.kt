@@ -22,7 +22,7 @@ class GenerateTestsService(private val project: Project) {
         notificationState.setState(file.path, GenerationUiState.Generating)
         EditorNotifications.getInstance(project).updateNotifications(file)
 
-        val settings = LlmSettingsLoader.load(project)
+        val settings = LlmAuthSessionService.getInstance(project).resolve(LlmSettingsLoader.load(project))
         val provider = LlmProviderFactory.create(settings)
 
         val packageName = when (val frameworkConfig = ui.frameworkConfig) {

@@ -6,7 +6,7 @@ import kotlinx.coroutines.runBlocking
 class AiCommitService(private val project: Project) {
 
     fun generate(diff: String): String {
-        val settings = LlmSettingsLoader.load(project)
+        val settings = LlmAuthSessionService.getInstance(project).resolve(LlmSettingsLoader.load(project))
         val provider = LlmProviderFactory.create(settings)
 
         val prompt = buildPrompt(diff)

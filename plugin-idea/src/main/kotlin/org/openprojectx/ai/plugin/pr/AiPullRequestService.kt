@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.openprojectx.ai.plugin.HttpClients
+import org.openprojectx.ai.plugin.LlmAuthSessionService
 import org.openprojectx.ai.plugin.LlmProviderFactory
 import org.openprojectx.ai.plugin.LlmSettingsLoader
 
@@ -21,7 +22,7 @@ class AiPullRequestService(private val project: Project) {
     ): PullRequestResult {
         val repository = GitRemoteParser.parse(remoteUrl)
 
-        val llmSettings = LlmSettingsLoader.load(project)
+        val llmSettings = LlmAuthSessionService.getInstance(project).resolve(LlmSettingsLoader.load(project))
         val llm = LlmProviderFactory.create(llmSettings)
 
         val prompt = PullRequestPromptBuilder.build(
