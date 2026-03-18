@@ -7,6 +7,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotifications
+import org.openprojectx.ai.plugin.core.ContractType
 import org.openprojectx.ai.plugin.core.Framework
 import org.openprojectx.ai.plugin.core.GenerationRequest
 import org.openprojectx.ai.plugin.core.PromptBuilder
@@ -30,9 +31,16 @@ class GenerateTestsService(private val project: Project) {
             FrameworkUiConfig.None -> null
         }
 
+        val contractType = when {
+            OpenApiHeuristics.looksLikeOpenApi(file, contractText) -> ContractType.OPENAPI
+            JavaHeuristics.looksLikeJavaSource(file, contractText) -> ContractType.JAVA
+            else -> ContractType.OPENAPI
+        }
+
         val req = GenerationRequest(
             contractText = contractText,
             framework = ui.framework,
+            contractType = contractType,
             baseUrl = ui.baseUrl,
             location = ui.location,
             packageName = packageName,

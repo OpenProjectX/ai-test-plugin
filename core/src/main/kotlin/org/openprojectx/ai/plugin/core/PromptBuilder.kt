@@ -14,13 +14,13 @@ object PromptBuilder {
         - Generate a single test class: $packageName.${req.className}
         - Use RestAssured given/when/then style.
         - Add assertions beyond status code: validate key fields, required properties, enums, and error models if present.
-        - For each operation in the spec, generate:
+        - For each operation in the source, generate:
           1) happy path test
           2) missing required field test
           3) invalid enum/type/boundary test (pick one meaningful invalid case)
         - Reuse common setup in @BeforeAll or a base method.
         - If baseUrl provided, use it; otherwise read from system property "api.baseUrl" with a default of "http://localhost:8080".
-        - Do NOT invent endpoints not in the contract.
+        - Do NOT invent endpoints not in the source.
         - Output ONLY code, no markdown.
       """.trimIndent()
             }
@@ -38,8 +38,26 @@ object PromptBuilder {
 
         val baseUrlHint = req.baseUrl?.let { "Base URL hint: $it" } ?: "Base URL hint: not provided"
 
+        val sourceInstructions = when (req.contractType) {
+            ContractType.OPENAPI -> """
+                You are a senior SDET. Generate high-quality automated API tests from the OpenAPI contract below.
+                Treat the OpenAPI specification as the source of truth.
+            """.trimIndent()
+
+            ContractType.JAVA -> """
+                You are a senior SDET. Generate high-quality automated tests from the Java source below.
+                Infer test scenarios from public methods, signatures, validations, and obvious edge cases in the code.
+                Do not assume external behavior that is not implied by the code.
+            """.trimIndent()
+        }
+
+        val sourceLabel = when (req.contractType) {
+            ContractType.OPENAPI -> "OPENAPI CONTRACT (verbatim):"
+            ContractType.JAVA -> "JAVA SOURCE (verbatim):"
+        }
+
         return """
-      You are a senior SDET. Generate high-quality automated API tests from the OpenAPI contract below.
+      $sourceInstructions
 
       $baseUrlHint
 
@@ -48,7 +66,7 @@ object PromptBuilder {
 
       $frameworkRules
 
-      CONTRACT (verbatim):
+      $sourceLabel
       ${req.contractText}
     """.trimIndent()
     }
