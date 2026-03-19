@@ -30,24 +30,7 @@ class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNot
 
         if (!isOpenApi && !isJavaSource) return null
 
-        if (isTestJavaSource) {
-            val looksLikeTestClass = contractText.contains("@Test") ||
-                contractText.contains("org.junit") ||
-                file.name.endsWith("Test.java") ||
-                file.name.endsWith("Tests.java")
-            if (!looksLikeTestClass || !TestDependencyInstaller.needsSetup(project, file)) {
-                return null
-            }
-
-            return EditorNotificationPanel(fileEditor).apply {
-                border = JBUI.Borders.empty(10, 0)
-                text = "Test class detected. Missing JUnit/Mockito/Rest Assured dependencies."
-                icon(OpenProjectXIcons.GenerateTests)
-                createActionLabel("One-click Configure Test Dependencies") {
-                    TestDependencyInstaller.installAndDownloadWithFeedback(project, file)
-                }
-            }
-        }
+        if (isTestJavaSource) return null
 
         val detectedSource = if (isOpenApi) "OpenAPI contract" else "Java source"
 
