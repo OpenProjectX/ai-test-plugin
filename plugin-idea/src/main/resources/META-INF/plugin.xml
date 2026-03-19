@@ -31,5 +31,12 @@
                 description="Generate commit message from current git diff using AI">
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeProbeVcsLogInternalToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeVcsLogInternalToolbarAction"
+                text="Summarize [Probe Vcs.Log.Toolbar.Internal]"
+                description="Summarize [Probe Vcs.Log.Toolbar.Internal]">
+            <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>

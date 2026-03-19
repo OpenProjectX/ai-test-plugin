@@ -55,6 +55,26 @@ object AiPromptDefaults {
         {{diff}}
     """
 
+
+
+    const val BRANCH_DIFF_SUMMARY = """
+        You are an expert software reviewer.
+
+        Summarize the key differences between two git branches based on the diff.
+
+        Requirements:
+        - Output in concise markdown
+        - Start with a 1-2 sentence overall summary
+        - Then provide 3-6 bullet points for important changes
+        - Focus on behavior, architecture, and risk areas
+        - Do not include code fences
+
+        Source branch: {{sourceBranch}}
+        Target branch: {{targetBranch}}
+
+        Git diff:
+        {{diff}}
+    """
     val GENERATION_WRAPPER: String = PromptBuilder.DEFAULT_WRAPPER_TEMPLATE
     val GENERATION_REST_ASSURED: String = PromptBuilder.DEFAULT_REST_ASSURED_RULES
     val GENERATION_KARATE: String = PromptBuilder.DEFAULT_KARATE_RULES
