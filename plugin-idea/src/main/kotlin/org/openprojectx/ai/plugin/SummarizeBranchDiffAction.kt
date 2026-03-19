@@ -13,7 +13,7 @@ import com.intellij.vcs.log.VcsLogDataKeys
 
 open class SummarizeBranchDiffAction(
     tooltip: String = "Summarize Branch Differences (Default)",
-    iconPath: String = "/icons/summarize-default.svg",
+    iconPath: String = "/icons/git-probe-01.svg",
     private val sourceTag: String = "default"
 ) : DumbAwareAction(
     null,
@@ -129,56 +129,62 @@ open class SummarizeBranchDiffAction(
 
 }
 
-class SummarizeBranchDiffViewerAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (Diff Viewer)",
-    iconPath = "/icons/summarize-diff-viewer.svg",
-    sourceTag = "Diff.ViewerToolbar"
+class SummarizeProbeVcsLogToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Vcs.Log.Toolbar]",
+    iconPath = "/icons/git-probe-01.svg",
+    sourceTag = "Vcs.Log.Toolbar"
 )
 
-class SummarizeBranchVcsDiffAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (VCS Diff)",
-    iconPath = "/icons/summarize-vcs-diff.svg",
-    sourceTag = "Vcs.Diff.Toolbar"
-)
-
-class SummarizeBranchChangesViewAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (Changes View)",
-    iconPath = "/icons/summarize-changes-view.svg",
-    sourceTag = "ChangesViewToolbar"
-)
-
-class SummarizeBranchLogToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (VCS Log)",
-    iconPath = "/icons/summarize-vcs-log.svg",
+class SummarizeProbeVcsLogInternalToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Vcs.Log.Toolbar.Internal]",
+    iconPath = "/icons/git-probe-02.svg",
     sourceTag = "Vcs.Log.Toolbar.Internal"
 )
 
-class SummarizeBranchDiffToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (Diff Toolbar)",
-    iconPath = "/icons/summarize-diff-toolbar.svg",
+class SummarizeProbeDiffViewerToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Diff.ViewerToolbar]",
+    iconPath = "/icons/git-probe-03.svg",
+    sourceTag = "Diff.ViewerToolbar"
+)
+
+class SummarizeProbeVcsDiffToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Vcs.Diff.Toolbar]",
+    iconPath = "/icons/git-probe-04.svg",
+    sourceTag = "Vcs.Diff.Toolbar"
+)
+
+class SummarizeProbeChangesViewToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe ChangesViewToolbar]",
+    iconPath = "/icons/git-probe-05.svg",
+    sourceTag = "ChangesViewToolbar"
+)
+
+class SummarizeProbeDiffToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Diff.Toolbar]",
+    iconPath = "/icons/git-probe-06.svg",
     sourceTag = "Diff.Toolbar"
 )
 
-class SummarizeBranchDiffEditorToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (Diff Editor Toolbar)",
-    iconPath = "/icons/summarize-diff-editor-toolbar.svg",
+class SummarizeProbeDiffEditorToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Diff.EditorToolbar]",
+    iconPath = "/icons/git-probe-07.svg",
     sourceTag = "Diff.EditorToolbar"
 )
 
-class SummarizeBranchFileHistoryToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (File History Toolbar)",
-    iconPath = "/icons/summarize-file-history-toolbar.svg",
+class SummarizeProbeFileHistoryToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Vcs.FileHistory.Toolbar]",
+    iconPath = "/icons/git-probe-08.svg",
     sourceTag = "Vcs.FileHistory.Toolbar"
 )
 
-class SummarizeBranchComparePopupToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (Compare Popup)",
-    iconPath = "/icons/summarize-compare-popup-toolbar.svg",
+class SummarizeProbeGitBranchesToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Git.Branches.ToolBar]",
+    iconPath = "/icons/git-probe-09.svg",
     sourceTag = "Git.Branches.ToolBar"
 )
 
-class SummarizeBranchVcsLogToolbarAction : SummarizeBranchDiffAction(
-    tooltip = "Summarize Branch Differences (VCS Log Toolbar)",
-    iconPath = "/icons/summarize-vcs-log-toolbar.svg",
-    sourceTag = "Vcs.Log.Toolbar"
+class SummarizeProbeCommitMessageToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences [Probe Vcs.MessageActionGroup]",
+    iconPath = "/icons/git-probe-10.svg",
+    sourceTag = "Vcs.MessageActionGroup"
 )

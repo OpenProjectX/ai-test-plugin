@@ -32,67 +32,74 @@
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchDiffViewerAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchDiffViewerAction"
-                text="Summarize Branch Differences (Diff Viewer)"
-                description="Summarize Branch Differences (Diff Viewer)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeDiffViewerToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeDiffViewerToolbarAction"
+                text="Summarize [Probe Diff.ViewerToolbar]"
+                description="Summarize [Probe Diff.ViewerToolbar]">
             <add-to-group group-id="Diff.ViewerToolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchVcsDiffAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchVcsDiffAction"
-                text="Summarize Branch Differences (VCS Diff)"
-                description="Summarize Branch Differences (VCS Diff)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeVcsDiffToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeVcsDiffToolbarAction"
+                text="Summarize [Probe Vcs.Diff.Toolbar]"
+                description="Summarize [Probe Vcs.Diff.Toolbar]">
             <add-to-group group-id="Vcs.Diff.Toolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchChangesViewAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchChangesViewAction"
-                text="Summarize Branch Differences (Changes View)"
-                description="Summarize Branch Differences (Changes View)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeChangesViewToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeChangesViewToolbarAction"
+                text="Summarize [Probe ChangesViewToolbar]"
+                description="Summarize [Probe ChangesViewToolbar]">
             <add-to-group group-id="ChangesViewToolbar" anchor="after" relative-to-action="ChangesView.ViewOptions"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchLogToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchLogToolbarAction"
-                text="Summarize Branch Differences (VCS Log)"
-                description="Summarize Branch Differences (VCS Log)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeVcsLogInternalToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeVcsLogInternalToolbarAction"
+                text="Summarize [Probe Vcs.Log.Toolbar.Internal]"
+                description="Summarize [Probe Vcs.Log.Toolbar.Internal]">
             <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchVcsLogToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchVcsLogToolbarAction"
-                text="Summarize Branch Differences (VCS Log Toolbar)"
-                description="Summarize Branch Differences (VCS Log Toolbar)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeVcsLogToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeVcsLogToolbarAction"
+                text="Summarize [Probe Vcs.Log.Toolbar]"
+                description="Summarize [Probe Vcs.Log.Toolbar]">
             <add-to-group group-id="Vcs.Log.Toolbar" anchor="after" relative-to-action="Vcs.Log.Refresh"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchDiffToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchDiffToolbarAction"
-                text="Summarize Branch Differences (Diff Toolbar)"
-                description="Summarize Branch Differences (Diff Toolbar)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeDiffToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeDiffToolbarAction"
+                text="Summarize [Probe Diff.Toolbar]"
+                description="Summarize [Probe Diff.Toolbar]">
             <add-to-group group-id="Diff.Toolbar" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchDiffEditorToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchDiffEditorToolbarAction"
-                text="Summarize Branch Differences (Diff Editor Toolbar)"
-                description="Summarize Branch Differences (Diff Editor Toolbar)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeDiffEditorToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeDiffEditorToolbarAction"
+                text="Summarize [Probe Diff.EditorToolbar]"
+                description="Summarize [Probe Diff.EditorToolbar]">
             <add-to-group group-id="Diff.EditorToolbar" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchFileHistoryToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchFileHistoryToolbarAction"
-                text="Summarize Branch Differences (File History Toolbar)"
-                description="Summarize Branch Differences (File History Toolbar)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeFileHistoryToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeFileHistoryToolbarAction"
+                text="Summarize [Probe Vcs.FileHistory.Toolbar]"
+                description="Summarize [Probe Vcs.FileHistory.Toolbar]">
             <add-to-group group-id="Vcs.FileHistory.Toolbar" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchComparePopupToolbarAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchComparePopupToolbarAction"
-                text="Summarize Branch Differences (Compare Popup)"
-                description="Summarize Branch Differences (Compare Popup)">
+                id="org.openprojectx.ai.plugin.SummarizeProbeGitBranchesToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeGitBranchesToolbarAction"
+                text="Summarize [Probe Git.Branches.ToolBar]"
+                description="Summarize [Probe Git.Branches.ToolBar]">
             <add-to-group group-id="Git.Branches.ToolBar" anchor="last"/>
+        </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeProbeCommitMessageToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeProbeCommitMessageToolbarAction"
+                text="Summarize [Probe Vcs.MessageActionGroup]"
+                description="Summarize [Probe Vcs.MessageActionGroup]">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>
