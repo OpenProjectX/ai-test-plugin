@@ -32,13 +32,31 @@
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
         <action
-                id="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
-                class="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
-                text="Summarize Branch Differences"
-                description="Summarize Branch Differences">
+                id="org.openprojectx.ai.plugin.SummarizeBranchDiffViewerAction"
+                class="org.openprojectx.ai.plugin.SummarizeBranchDiffViewerAction"
+                text="Summarize Branch Differences (Diff Viewer)"
+                description="Summarize Branch Differences (Diff Viewer)">
             <add-to-group group-id="Diff.ViewerToolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
+        </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeBranchVcsDiffAction"
+                class="org.openprojectx.ai.plugin.SummarizeBranchVcsDiffAction"
+                text="Summarize Branch Differences (VCS Diff)"
+                description="Summarize Branch Differences (VCS Diff)">
             <add-to-group group-id="Vcs.Diff.Toolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
+        </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeBranchChangesViewAction"
+                class="org.openprojectx.ai.plugin.SummarizeBranchChangesViewAction"
+                text="Summarize Branch Differences (Changes View)"
+                description="Summarize Branch Differences (Changes View)">
             <add-to-group group-id="ChangesViewToolbar" anchor="after" relative-to-action="ChangesView.ViewOptions"/>
+        </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeBranchLogToolbarAction"
+                class="org.openprojectx.ai.plugin.SummarizeBranchLogToolbarAction"
+                text="Summarize Branch Differences (VCS Log)"
+                description="Summarize Branch Differences (VCS Log)">
             <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
         </action>
     </actions>

@@ -1,20 +1,24 @@
 package org.openprojectx.ai.plugin
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DumbAwareAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.vcs.log.VcsLogDataKeys
 
-class SummarizeBranchDiffAction : DumbAwareAction(
+open class SummarizeBranchDiffAction(
+    tooltip: String = "Summarize Branch Differences (Default)",
+    iconPath: String = "/icons/summarize-default.svg",
+    private val sourceTag: String = "default"
+) : DumbAwareAction(
     null,
-    "Summarize Branch Differences",
-    AllIcons.Actions.Refresh
+    tooltip,
+    IconLoader.getIcon(iconPath, SummarizeBranchDiffAction::class.java)
 ) {
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -26,7 +30,7 @@ class SummarizeBranchDiffAction : DumbAwareAction(
             Notifications.warn(
                 project,
                 "Summarize Branch Diff",
-                "Cannot detect diff context. Open a branch/file diff and try again."
+                "[$sourceTag] Cannot detect diff context. Open a branch/file diff and try again."
             )
             return
         }
@@ -47,7 +51,7 @@ class SummarizeBranchDiffAction : DumbAwareAction(
                         Notifications.info(
                             project,
                             "Summarize Branch Diff",
-                            "No changes found between $sourceBranch and $targetBranch."
+                            "[$sourceTag] No changes found between $sourceBranch and $targetBranch."
                         )
                         return
                     }
@@ -65,7 +69,7 @@ class SummarizeBranchDiffAction : DumbAwareAction(
                 } catch (ex: Exception) {
                     Notifications.error(
                         project,
-                        "Summarize Branch Diff failed",
+                        "Summarize Branch Diff failed [$sourceTag]",
                         ex.message ?: ex.toString()
                     )
                 }
@@ -124,3 +128,27 @@ class SummarizeBranchDiffAction : DumbAwareAction(
     }
 
 }
+
+class SummarizeBranchDiffViewerAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences (Diff Viewer)",
+    iconPath = "/icons/summarize-diff-viewer.svg",
+    sourceTag = "Diff.ViewerToolbar"
+)
+
+class SummarizeBranchVcsDiffAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences (VCS Diff)",
+    iconPath = "/icons/summarize-vcs-diff.svg",
+    sourceTag = "Vcs.Diff.Toolbar"
+)
+
+class SummarizeBranchChangesViewAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences (Changes View)",
+    iconPath = "/icons/summarize-changes-view.svg",
+    sourceTag = "ChangesViewToolbar"
+)
+
+class SummarizeBranchLogToolbarAction : SummarizeBranchDiffAction(
+    tooltip = "Summarize Branch Differences (VCS Log)",
+    iconPath = "/icons/summarize-vcs-log.svg",
+    sourceTag = "Vcs.Log.Toolbar.Internal"
+)
