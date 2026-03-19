@@ -49,6 +49,12 @@ object Notifications {
             }
         )
 
+        notification.addAction(
+            NotificationAction.createSimple("Install Test Dependencies") {
+                TestDependencyInstaller.installAndDownloadWithFeedback(project)
+            }
+        )
+
         notification.notify(project)
     }
 }

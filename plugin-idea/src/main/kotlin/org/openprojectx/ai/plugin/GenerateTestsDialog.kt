@@ -5,7 +5,6 @@ import com.intellij.openapi.ui.DialogWrapper
 import org.openprojectx.ai.plugin.core.Framework
 import java.awt.BorderLayout
 import java.awt.CardLayout
-import javax.swing.Action
 import javax.swing.*
 
 class GenerateTestsDialog(
@@ -62,15 +61,6 @@ class GenerateTestsDialog(
 
         panel.add(form, BorderLayout.CENTER)
         return panel
-    }
-
-    override fun createLeftSideActions(): Array<Action> {
-        val installDepsAction = object : DialogWrapperAction("Install Test Dependencies") {
-            override fun doAction(e: java.awt.event.ActionEvent?) {
-                TestDependencyInstaller.installAndDownloadWithFeedback(project)
-            }
-        }
-        return arrayOf(installDepsAction)
     }
 
     private fun applyDefaults(framework: Framework) {
