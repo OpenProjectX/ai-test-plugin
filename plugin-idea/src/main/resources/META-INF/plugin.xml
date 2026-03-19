@@ -37,6 +37,7 @@
                 text="Summarize Branch Differences"
                 description="Summarize Branch Differences">
             <add-to-group group-id="Diff.ViewerToolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
+            <add-to-group group-id="Vcs.Diff.Toolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
             <add-to-group group-id="ChangesViewToolbar" anchor="after" relative-to-action="ChangesView.ViewOptions"/>
             <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
         </action>
