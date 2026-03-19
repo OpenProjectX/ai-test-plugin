@@ -34,13 +34,11 @@
         <action
                 id="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
                 class="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
-                text="Summarize Branch Diff"
-                description="Generate an AI summary for differences between two branches">
+                text="Summarize Branch Differences"
+                description="Summarize Branch Differences">
+            <add-to-group group-id="Diff.ViewerToolbar" anchor="after" relative-to-action="Diff.ShowSettingsPopup"/>
+            <add-to-group group-id="ChangesViewToolbar" anchor="after" relative-to-action="ChangesView.ViewOptions"/>
             <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
-            <add-to-group group-id="Diff.ViewerToolbar" anchor="last"/>
-            <add-to-group group-id="ChangesViewToolbar" anchor="last"/>
-            <add-to-group group-id="Vcs.Diff.Toolbar" anchor="last"/>
-            <add-to-group group-id="ChangesView.ViewOptions" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>
