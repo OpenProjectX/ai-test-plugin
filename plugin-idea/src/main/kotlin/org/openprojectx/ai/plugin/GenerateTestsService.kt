@@ -2,6 +2,9 @@ package org.openprojectx.ai.plugin
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
@@ -26,23 +29,39 @@ class GenerateTestsService(private val project: Project) {
         val authSession = LlmAuthSessionService.getInstance(project)
         val config = LlmSettingsLoader.loadConfig(project)
 
-        val packageName = when (val frameworkConfig = ui.frameworkConfig) {
-            is FrameworkUiConfig.RestAssured -> frameworkConfig.packageName
-            FrameworkUiConfig.None -> null
-        }
-
         val contractType = when {
             OpenApiHeuristics.looksLikeOpenApi(file, contractText) -> ContractType.OPENAPI
             JavaHeuristics.looksLikeJavaSource(file, contractText) -> ContractType.JAVA
             else -> ContractType.OPENAPI
         }
 
+        val effectiveFramework = if (contractType == ContractType.JAVA) {
+            Framework.REST_ASSURED
+        } else {
+            ui.framework
+        }
+
+        val effectiveLocation = if (contractType == ContractType.JAVA) {
+            JavaHeuristics.deriveTestLocationForMainJava(file, project.basePath)
+                ?.takeIf { it.isNotBlank() }
+                ?: ui.location
+        } else {
+            ui.location
+        }
+
+        val packageName = when (val frameworkConfig = ui.frameworkConfig) {
+            is FrameworkUiConfig.RestAssured -> frameworkConfig.packageName
+            FrameworkUiConfig.None -> null
+        }?.takeIf { it.isNotBlank() } ?: if (contractType == ContractType.JAVA) {
+            JavaHeuristics.derivePackageNameForJava(file, project.basePath)
+        } else null
+
         val req = GenerationRequest(
             contractText = contractText,
-            framework = ui.framework,
+            framework = effectiveFramework,
             contractType = contractType,
             baseUrl = ui.baseUrl,
-            location = ui.location,
+            location = effectiveLocation,
             packageName = packageName,
             className = ui.className,
             outputNotes = ui.notes
@@ -50,41 +69,58 @@ class GenerateTestsService(private val project: Project) {
 
         val prompt = PromptBuilder.build(req, config.prompts.generation)
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-                val code = authSession.withReloginOnUnauthorized { settings ->
-                    val provider = LlmProviderFactory.create(settings)
-                    kotlinx.coroutines.runBlocking { provider.generateCode(prompt) }
-                }
-                writeGenerated(
-                    project = project,
-                    contractFile = file,
-                    framework = ui.framework,
-                    location = ui.location,
-                    packageName = packageName,
-                    cls = ui.className,
-                    code = code
-                )
+        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Generating tests by AI", true) {
+            override fun run(indicator: ProgressIndicator) {
+                try {
+                    indicator.text = "Preparing generation request..."
+                    indicator.fraction = 0.15
 
-                notificationState.setState(file.path, GenerationUiState.Done)
-                EditorNotifications.getInstance(project).updateNotifications(file)
+                    indicator.text = "Calling LLM provider..."
+                    indicator.fraction = 0.45
+                    val code = authSession.withReloginOnUnauthorized { settings ->
+                        val provider = LlmProviderFactory.create(settings)
+                        kotlinx.coroutines.runBlocking { provider.generateCode(prompt) }
+                    }
 
-                ApplicationManager.getApplication().invokeLater {
-                    Thread {
-                        Thread.sleep(3000)
-                        notificationState.clearState(file.path)
-                        ApplicationManager.getApplication().invokeLater {
-                            EditorNotifications.getInstance(project).updateNotifications(file)
-                        }
-                    }.start()
+                    indicator.text = "Post-processing generated code..."
+                    indicator.fraction = 0.7
+                    val sanitizedCode = sanitizeGeneratedCode(code)
+
+                    indicator.text = "Writing test file to project..."
+                    indicator.fraction = 0.9
+                    writeGenerated(
+                        project = project,
+                        contractFile = file,
+                        framework = effectiveFramework,
+                        location = effectiveLocation,
+                        packageName = packageName,
+                        cls = ui.className,
+                        code = sanitizedCode
+                    )
+
+                    indicator.text = "Finalizing..."
+                    indicator.fraction = 1.0
+
+                    notificationState.setState(file.path, GenerationUiState.Done)
+                    EditorNotifications.getInstance(project).updateNotifications(file)
+
+                    ApplicationManager.getApplication().invokeLater {
+                        Thread {
+                            Thread.sleep(3000)
+                            notificationState.clearState(file.path)
+                            ApplicationManager.getApplication().invokeLater {
+                                EditorNotifications.getInstance(project).updateNotifications(file)
+                            }
+                        }.start()
+                    }
+                } catch (e: Exception) {
+                    log.error("Test generation failed:", e)
+                    notificationState.clearState(file.path)
+                    EditorNotifications.getInstance(project).updateNotifications(file)
+                    Notifications.error(project, "Test generation failed:", e.message ?: e.toString())
                 }
-            } catch (e: Exception) {
-                log.error("Test generation failed:", e)
-                notificationState.clearState(file.path)
-                EditorNotifications.getInstance(project).updateNotifications(file)
-                Notifications.error(project, "Test generation failed:", e.message ?: e.toString())
             }
-        }
+        })
     }
 
     private fun writeGenerated(
@@ -168,4 +204,10 @@ class GenerateTestsService(private val project: Project) {
             .replace('\\', '/')
             .removePrefix("/")
             .removeSuffix("/")
+
+    private fun sanitizeGeneratedCode(raw: String): String {
+        val trimmed = raw.trim()
+        val withoutStartFence = trimmed.replaceFirst(Regex("^```(?:\\w+)?\\s*\\n?"), "")
+        return withoutStartFence.replaceFirst(Regex("\\n?```\\s*$"), "").trim()
+    }
 }

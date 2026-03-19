@@ -15,4 +15,47 @@ object JavaHeuristics {
 
         return hasMethodSignature
     }
+
+    fun isTestJavaPath(file: VirtualFile): Boolean {
+        val normalized = file.path.replace('\\', '/').lowercase()
+        return normalized.contains("/src/test/java/")
+    }
+
+    fun deriveTestLocationForMainJava(file: VirtualFile, projectBasePath: String?): String? {
+        val basePath = projectBasePath ?: return null
+        val normalizedFilePath = file.path.replace('\\', '/')
+        val normalizedBasePath = basePath.replace('\\', '/').removeSuffix("/")
+        val prefix = "$normalizedBasePath/"
+        if (!normalizedFilePath.startsWith(prefix)) return null
+
+        val relative = normalizedFilePath.removePrefix(prefix)
+        val marker = "/src/main/java/"
+        val index = relative.indexOf(marker)
+        if (index < 0) return null
+
+        val modulePrefix = relative.substring(0, index).trim('/')
+        return listOfNotNull(
+            modulePrefix.takeIf { it.isNotBlank() },
+            "src/test/java"
+        ).joinToString("/")
+    }
+
+    fun derivePackageNameForJava(file: VirtualFile, projectBasePath: String?): String? {
+        val basePath = projectBasePath ?: return null
+        val normalizedFilePath = file.path.replace('\\', '/')
+        val normalizedBasePath = basePath.replace('\\', '/').removeSuffix("/")
+        val prefix = "$normalizedBasePath/"
+        if (!normalizedFilePath.startsWith(prefix)) return null
+
+        val relative = normalizedFilePath.removePrefix(prefix)
+        val marker = "/src/main/java/"
+        val index = relative.indexOf(marker)
+        if (index < 0) return null
+
+        val afterMain = relative.substring(index + marker.length)
+        val packagePath = afterMain.substringBeforeLast('/', missingDelimiterValue = "")
+        if (packagePath.isBlank()) return null
+
+        return packagePath.replace('/', '.').trim('.').takeIf { it.isNotBlank() }
+    }
 }

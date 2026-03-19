@@ -6,6 +6,7 @@ object PromptBuilder {
         Target: Java tests using JUnit 5 + Rest Assured.
         Requirements:
         - Generate a single test class: {{qualifiedClassName}}
+        - Include one executable helper method (for local run) that can run this class's tests.
         - Use RestAssured given/when/then style.
         - Add assertions beyond status code: validate key fields, required properties, enums, and error models if present.
         - For each operation in the spec, generate:
@@ -28,6 +29,19 @@ object PromptBuilder {
         Karate syntax rules:
     """
 
+    const val DEFAULT_JAVA_METHOD_RULES = """
+        Target: Java unit/integration tests for the provided Java source.
+        Requirements:
+        - Generate a single JUnit 5 test class: {{qualifiedClassName}}.
+        - Include one executable helper method (for local run) that can run this class's tests.
+        - Focus only on methods present in the provided source; do not invent methods.
+        - Prioritize the method referenced by user notes when provided.
+        - For each tested method, include meaningful assertions for behavior and edge cases.
+        - Mock external collaborators (HTTP/DB/remote dependencies) with Mockito or test doubles; do not call real external systems.
+        - Keep tests deterministic and runnable.
+        - Output ONLY Java code, no markdown.
+    """
+
     const val DEFAULT_WRAPPER_TEMPLATE = """
         You are a senior SDET. Generate high-quality automated API tests from the contract below.
 
@@ -44,23 +58,36 @@ object PromptBuilder {
     """
 
     fun build(req: GenerationRequest, template: GenerationPromptTemplate = GenerationPromptTemplate()): String {
-        val frameworkRules = when (req.framework) {
-            Framework.REST_ASSURED -> {
+        val frameworkRules = when (req.contractType) {
+            ContractType.JAVA -> {
                 val packageName = req.packageName?.takeIf { it.isNotBlank() }
-                    ?: error("packageName is required for REST_ASSURED generation")
-
-                render(template.restAssuredRules, mapOf(
+                    ?: error("packageName is required for JAVA generation")
+                render(DEFAULT_JAVA_METHOD_RULES, mapOf(
                     "qualifiedClassName" to "$packageName.${req.className}"
                 ))
             }
+            ContractType.OPENAPI -> when (req.framework) {
+                Framework.REST_ASSURED -> {
+                    val packageName = req.packageName?.takeIf { it.isNotBlank() }
+                        ?: error("packageName is required for REST_ASSURED generation")
 
-            Framework.KARATE -> render(template.karateRules, mapOf(
-                "karateBaseUrl" to (req.baseUrl ?: "karate.properties['api.baseUrl'] || 'http://localhost:8080'")
-            ))
+                    val apiRules = template.restAssuredRules + "\n- Mock API results/dependencies where appropriate; avoid unstable real upstream calls."
+                    render(apiRules, mapOf(
+                        "qualifiedClassName" to "$packageName.${req.className}"
+                    ))
+                }
+
+                Framework.KARATE -> render(template.karateRules + "\n- Prefer deterministic mocking/stubbing for external dependencies when possible.", mapOf(
+                    "karateBaseUrl" to (req.baseUrl ?: "karate.properties['api.baseUrl'] || 'http://localhost:8080'")
+                ))
+            }
         }
 
         return render(template.wrapper, mapOf(
-            "contractType" to "OpenAPI",
+            "contractType" to when (req.contractType) {
+                ContractType.OPENAPI -> "OpenAPI/REST API"
+                ContractType.JAVA -> "Java Source Methods"
+            },
             "baseUrlHint" to (req.baseUrl ?: "not provided"),
             "outputNotes" to (req.outputNotes ?: "(none)"),
             "frameworkRules" to frameworkRules,
