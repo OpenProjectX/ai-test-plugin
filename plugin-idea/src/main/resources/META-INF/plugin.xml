@@ -31,5 +31,12 @@
                 description="Generate commit message from current git diff using AI">
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
+        <action
+                id="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
+                class="org.openprojectx.ai.plugin.SummarizeBranchDiffAction"
+                text="Summarize Branch Diff"
+                description="Generate an AI summary for differences between two branches">
+            <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
+        </action>
     </actions>
 </idea-plugin>

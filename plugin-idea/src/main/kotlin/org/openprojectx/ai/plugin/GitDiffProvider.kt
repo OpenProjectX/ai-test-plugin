@@ -42,4 +42,29 @@ object GitDiffProvider {
 
         return unstaged
     }
+
+
+    fun getDiffBetweenBranches(project: Project, sourceBranch: String, targetBranch: String): String {
+        val repo = GitRepositoryManager.getInstance(project).repositories.firstOrNull()
+            ?: error("No Git repository found for project")
+
+        val process = ProcessBuilder(
+            "git",
+            "diff",
+            "$targetBranch...$sourceBranch"
+        )
+            .directory(File(repo.root.path))
+            .redirectErrorStream(true)
+            .start()
+
+        val output = process.inputStream.bufferedReader().use { it.readText() }
+        val exitCode = process.waitFor()
+
+        if (exitCode != 0) {
+            error("Failed to compare branches: $output")
+        }
+
+        return output
+    }
+
 }
