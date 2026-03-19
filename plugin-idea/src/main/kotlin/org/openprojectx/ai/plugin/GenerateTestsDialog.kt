@@ -68,13 +68,18 @@ class GenerateTestsDialog(
         val resolved = generation.defaultsFor(framework)
         val derivedJavaMainTestLocation = JavaHeuristics.deriveTestLocationForMainJava(sourceFile, project.basePath)
         val derivedJavaPackageName = JavaHeuristics.derivePackageNameForJava(sourceFile, project.basePath)
+        val isJavaSourceInput = JavaHeuristics.looksLikeJavaSource(sourceFile, contractText)
 
         location.text = if (framework == Framework.REST_ASSURED && !derivedJavaMainTestLocation.isNullOrBlank()) {
             derivedJavaMainTestLocation
         } else {
             resolved.location
         }
-        clsField.text = generation.defaultClassName
+        clsField.text = if (isJavaSourceInput) {
+            defaultJavaTestClassName(sourceFile.nameWithoutExtension)
+        } else {
+            generation.defaultClassName
+        }
         baseUrlField.text = generation.defaultBaseUrl
         notesArea.text = generation.defaultNotes
         packageNameField.text = if (framework == Framework.REST_ASSURED && !derivedJavaPackageName.isNullOrBlank()) {
@@ -116,6 +121,12 @@ class GenerateTestsDialog(
         p.add(JLabel(label), BorderLayout.WEST)
         p.add(comp, BorderLayout.CENTER)
         return p
+    }
+
+    private fun defaultJavaTestClassName(sourceClassName: String): String {
+        val trimmed = sourceClassName.trim()
+        if (trimmed.isEmpty()) return config.generation.defaultClassName
+        return if (trimmed.endsWith("Test")) trimmed else "${trimmed}Test"
     }
 
     fun result(): UiResult {
