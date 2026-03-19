@@ -24,7 +24,12 @@ class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNot
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return null
         val contractText = doc.text ?: return null
 
-        if (!OpenApiHeuristics.looksLikeOpenApi(file, contractText)) return null
+        val isOpenApi = OpenApiHeuristics.looksLikeOpenApi(file, contractText)
+        val isJavaSource = JavaHeuristics.looksLikeJavaSource(file, contractText)
+
+        if (!isOpenApi && !isJavaSource) return null
+
+        val detectedSource = if (isOpenApi) "OpenAPI contract" else "Java source"
 
         val stateService = OpenApiNotificationStateService.getInstance(project)
         val state = stateService.getState(file.path)
@@ -34,7 +39,7 @@ class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNot
 
             when (state) {
                 GenerationUiState.Idle -> {
-                    text = "OpenAPI contract detected"
+                    text = "$detectedSource detected"
                     icon(OpenProjectXIcons.GenerateTests)
                 }
 
