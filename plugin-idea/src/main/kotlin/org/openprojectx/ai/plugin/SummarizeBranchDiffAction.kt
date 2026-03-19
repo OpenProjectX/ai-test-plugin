@@ -59,8 +59,7 @@ class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = e.project != null &&
-            (resolveComparedBranches(e) != null || isDiffViewerPlace(e.place))
+        e.presentation.isEnabledAndVisible = e.project != null
     }
 
     private fun resolveComparedBranches(e: AnActionEvent): Pair<String, String>? {
@@ -91,8 +90,4 @@ class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
         }
     }
 
-    private fun isDiffViewerPlace(place: String?): Boolean {
-        if (place == null) return false
-        return place.contains("diff", ignoreCase = true)
-    }
 }

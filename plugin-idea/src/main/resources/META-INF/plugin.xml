@@ -38,6 +38,9 @@
                 description="Generate an AI summary for differences between two branches">
             <add-to-group group-id="Vcs.Log.Toolbar.Internal" anchor="last"/>
             <add-to-group group-id="Diff.ViewerToolbar" anchor="last"/>
+            <add-to-group group-id="ChangesViewToolbar" anchor="last"/>
+            <add-to-group group-id="Vcs.Diff.Toolbar" anchor="last"/>
+            <add-to-group group-id="ChangesView.ViewOptions" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>
