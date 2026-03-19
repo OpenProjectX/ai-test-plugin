@@ -63,14 +63,30 @@ class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
     }
 
     private fun resolveComparedBranches(e: AnActionEvent): Pair<String, String>? {
-        val branches = e.getData(VcsLogDataKeys.VCS_LOG_BRANCHES)
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
-            ?.distinct()
+        val rawBranches = e.getData(VcsLogDataKeys.VCS_LOG_BRANCHES) as? Collection<*>
             ?: return null
+
+        val branches = LinkedHashSet<String>()
+        for (rawBranch in rawBranches) {
+            val name = extractBranchName(rawBranch)?.trim().orEmpty()
+            if (name.isNotEmpty()) {
+                branches.add(name)
+            }
+        }
 
         if (branches.size != 2) return null
 
-        return branches[0] to branches[1]
+        val values = branches.toList()
+        return Pair(values[0], values[1])
+    }
+
+    private fun extractBranchName(value: Any?): String? {
+        return when (value) {
+            null -> null
+            is String -> value
+            else -> runCatching {
+                value.javaClass.getMethod("getName").invoke(value) as? String
+            }.getOrNull() ?: value.toString()
+        }
     }
 }
