@@ -7,20 +7,19 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import com.intellij.diff.util.DiffDataKeys
 import com.intellij.vcs.log.VcsLogDataKeys
 
 class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val branches = resolveComparedBranches(e) ?: resolveComparedBranchesFromDiffTitle(e)
+        val branches = resolveComparedBranches(e)
 
         if (branches == null) {
             Notifications.warn(
                 project,
                 "Summarize Branch Diff",
-                "This action is only available while comparing two branches."
+                "Cannot auto-detect compared branches on this page yet."
             )
             return
         }
@@ -61,7 +60,7 @@ class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project != null &&
-            (resolveComparedBranches(e) != null || resolveComparedBranchesFromDiffTitle(e) != null)
+            (resolveComparedBranches(e) != null || isDiffViewerPlace(e.place))
     }
 
     private fun resolveComparedBranches(e: AnActionEvent): Pair<String, String>? {
@@ -92,17 +91,8 @@ class SummarizeBranchDiffAction : AnAction("Summarize Branch Diff") {
         }
     }
 
-    private fun resolveComparedBranchesFromDiffTitle(e: AnActionEvent): Pair<String, String>? {
-        val title = e.getData(DiffDataKeys.DIFF_REQUEST)?.title?.trim().orEmpty()
-        if (title.isEmpty()) return null
-
-        val separators = listOf("...", "..", " vs ", " and ", " ↔ ")
-        for (separator in separators) {
-            val parts = title.split(separator).map { it.trim() }.filter { it.isNotEmpty() }
-            if (parts.size == 2) {
-                return Pair(parts[0], parts[1])
-            }
-        }
-        return null
+    private fun isDiffViewerPlace(place: String?): Boolean {
+        if (place == null) return false
+        return place.contains("diff", ignoreCase = true)
     }
 }
