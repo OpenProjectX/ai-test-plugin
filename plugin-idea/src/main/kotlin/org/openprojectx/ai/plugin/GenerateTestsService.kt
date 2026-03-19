@@ -26,23 +26,39 @@ class GenerateTestsService(private val project: Project) {
         val authSession = LlmAuthSessionService.getInstance(project)
         val config = LlmSettingsLoader.loadConfig(project)
 
-        val packageName = when (val frameworkConfig = ui.frameworkConfig) {
-            is FrameworkUiConfig.RestAssured -> frameworkConfig.packageName
-            FrameworkUiConfig.None -> null
-        }
-
         val contractType = when {
             OpenApiHeuristics.looksLikeOpenApi(file, contractText) -> ContractType.OPENAPI
             JavaHeuristics.looksLikeJavaSource(file, contractText) -> ContractType.JAVA
             else -> ContractType.OPENAPI
         }
 
+        val effectiveFramework = if (contractType == ContractType.JAVA) {
+            Framework.REST_ASSURED
+        } else {
+            ui.framework
+        }
+
+        val effectiveLocation = if (contractType == ContractType.JAVA) {
+            JavaHeuristics.deriveTestLocationForMainJava(file, project.basePath)
+                ?.takeIf { it.isNotBlank() }
+                ?: ui.location
+        } else {
+            ui.location
+        }
+
+        val packageName = when (val frameworkConfig = ui.frameworkConfig) {
+            is FrameworkUiConfig.RestAssured -> frameworkConfig.packageName
+            FrameworkUiConfig.None -> null
+        }?.takeIf { it.isNotBlank() } ?: if (contractType == ContractType.JAVA) {
+            JavaHeuristics.derivePackageNameForJava(file, project.basePath)
+        } else null
+
         val req = GenerationRequest(
             contractText = contractText,
-            framework = ui.framework,
+            framework = effectiveFramework,
             contractType = contractType,
             baseUrl = ui.baseUrl,
-            location = ui.location,
+            location = effectiveLocation,
             packageName = packageName,
             className = ui.className,
             outputNotes = ui.notes
@@ -59,8 +75,8 @@ class GenerateTestsService(private val project: Project) {
                 writeGenerated(
                     project = project,
                     contractFile = file,
-                    framework = ui.framework,
-                    location = ui.location,
+                    framework = effectiveFramework,
+                    location = effectiveLocation,
                     packageName = packageName,
                     cls = ui.className,
                     code = code

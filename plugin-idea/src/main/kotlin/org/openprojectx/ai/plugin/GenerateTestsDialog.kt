@@ -5,10 +5,12 @@ import com.intellij.openapi.ui.DialogWrapper
 import org.openprojectx.ai.plugin.core.Framework
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import javax.swing.Action
 import javax.swing.*
 
 class GenerateTestsDialog(
     private val project: Project,
+    private val sourceFile: com.intellij.openapi.vfs.VirtualFile,
     private val contractText: String
 ) : DialogWrapper(project) {
 
@@ -62,21 +64,50 @@ class GenerateTestsDialog(
         return panel
     }
 
+    override fun createLeftSideActions(): Array<Action> {
+        val installDepsAction = object : DialogWrapperAction("Install Test Dependencies") {
+            override fun doAction(e: java.awt.event.ActionEvent?) {
+                TestDependencyInstaller.installAndDownloadWithFeedback(project)
+            }
+        }
+        return arrayOf(installDepsAction)
+    }
+
     private fun applyDefaults(framework: Framework) {
         val generation = config.generation
         val resolved = generation.defaultsFor(framework)
+        val derivedJavaMainTestLocation = JavaHeuristics.deriveTestLocationForMainJava(sourceFile, project.basePath)
+        val derivedJavaPackageName = JavaHeuristics.derivePackageNameForJava(sourceFile, project.basePath)
 
-        location.text = resolved.location
+        location.text = if (framework == Framework.REST_ASSURED && !derivedJavaMainTestLocation.isNullOrBlank()) {
+            derivedJavaMainTestLocation
+        } else {
+            resolved.location
+        }
         clsField.text = generation.defaultClassName
         baseUrlField.text = generation.defaultBaseUrl
         notesArea.text = generation.defaultNotes
-        packageNameField.text = resolved.packageName.orEmpty()
+        packageNameField.text = if (framework == Framework.REST_ASSURED && !derivedJavaPackageName.isNullOrBlank()) {
+            derivedJavaPackageName
+        } else {
+            resolved.packageName.orEmpty()
+        }
     }
 
     private fun applyFrameworkDefaults(framework: Framework) {
         val resolved = config.generation.defaultsFor(framework)
-        location.text = resolved.location
-        packageNameField.text = resolved.packageName.orEmpty()
+        val derivedJavaMainTestLocation = JavaHeuristics.deriveTestLocationForMainJava(sourceFile, project.basePath)
+        val derivedJavaPackageName = JavaHeuristics.derivePackageNameForJava(sourceFile, project.basePath)
+        location.text = if (framework == Framework.REST_ASSURED && !derivedJavaMainTestLocation.isNullOrBlank()) {
+            derivedJavaMainTestLocation
+        } else {
+            resolved.location
+        }
+        packageNameField.text = if (framework == Framework.REST_ASSURED && !derivedJavaPackageName.isNullOrBlank()) {
+            derivedJavaPackageName
+        } else {
+            resolved.packageName.orEmpty()
+        }
     }
 
     private fun updateFrameworkSpecificFields(framework: Framework) {
@@ -127,7 +158,7 @@ class GenerateTestsDialog(
 
     companion object {
         fun open(project: Project, file: com.intellij.openapi.vfs.VirtualFile, contractText: String) {
-            val dialog = GenerateTestsDialog(project, contractText)
+            val dialog = GenerateTestsDialog(project, file, contractText)
             if (!dialog.showAndGet()) return
             GenerateTestsService(project).generate(dialog.result(), file, contractText)
         }

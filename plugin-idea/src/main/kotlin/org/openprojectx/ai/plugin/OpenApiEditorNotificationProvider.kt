@@ -26,8 +26,10 @@ class OpenApiEditorNotificationProvider : EditorNotifications.Provider<EditorNot
 
         val isOpenApi = OpenApiHeuristics.looksLikeOpenApi(file, contractText)
         val isJavaSource = JavaHeuristics.looksLikeJavaSource(file, contractText)
+        val isTestJavaSource = isJavaSource && JavaHeuristics.isTestJavaPath(file)
 
         if (!isOpenApi && !isJavaSource) return null
+        if (isTestJavaSource) return null
 
         val detectedSource = if (isOpenApi) "OpenAPI contract" else "Java source"
 
