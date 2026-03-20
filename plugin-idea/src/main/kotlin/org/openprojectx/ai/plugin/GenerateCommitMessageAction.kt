@@ -80,7 +80,18 @@ class GenerateCommitMessageAction : AnAction("Generate Commit Message") {
             config.prompts.profiles.commitMessage.selected
         )
         if (selected == -1) return SelectionResult.Cancelled
+        val selectedName = items[selected].first
+        saveDefaultCommitPromptProfile(project, selectedName)
         return SelectionResult.Selected(items[selected].second)
+    }
+
+    private fun saveDefaultCommitPromptProfile(project: com.intellij.openapi.project.Project, selectedName: String) {
+        val current = LlmSettingsLoader.loadSettingsModel(project)
+        if (current.commitPromptProfileDefault == selectedName) return
+        LlmSettingsLoader.saveSettingsModel(
+            project,
+            current.copy(commitPromptProfileDefault = selectedName)
+        )
     }
 
     private sealed interface SelectionResult {

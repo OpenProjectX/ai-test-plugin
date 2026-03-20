@@ -25,6 +25,8 @@ import javax.swing.JTabbedPane
 import javax.swing.JTextArea
 import javax.swing.JTextField
 import javax.swing.SwingConstants
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
 
 class AiTestSettingsConfigurable(
     private val project: Project
@@ -76,6 +78,8 @@ class AiTestSettingsConfigurable(
     private lateinit var generationPromptProfilesYamlField: JTextArea
     private lateinit var commitPromptProfileDefaultField: JTextField
     private lateinit var commitPromptProfilesYamlField: JTextArea
+    private lateinit var commitPromptNewNameField: JTextField
+    private lateinit var commitPromptNewValueField: JTextArea
     private lateinit var branchDiffPromptProfileDefaultField: JTextField
     private lateinit var branchDiffPromptProfilesYamlField: JTextArea
 
@@ -141,6 +145,8 @@ class AiTestSettingsConfigurable(
         generationPromptProfilesYamlField = textArea(12)
         commitPromptProfileDefaultField = JTextField()
         commitPromptProfilesYamlField = textArea(12)
+        commitPromptNewNameField = JTextField()
+        commitPromptNewValueField = textArea(6)
         branchDiffPromptProfileDefaultField = JTextField()
         branchDiffPromptProfilesYamlField = textArea(12)
 
@@ -285,7 +291,34 @@ class AiTestSettingsConfigurable(
             "Branch diff default profile" to branchDiffPromptProfileDefaultField,
             "Branch diff profiles (YAML map)" to JScrollPane(branchDiffPromptProfilesYamlField)
         )))
+        add(commitPromptManagerSection())
     }).apply { border = BorderFactory.createEmptyBorder() }
+
+    private fun commitPromptManagerSection(): JComponent {
+        val addButton = JButton("Add Commit Prompt").apply {
+            addActionListener {
+                val name = commitPromptNewNameField.text.trim()
+                val value = commitPromptNewValueField.text.trim()
+                if (name.isBlank() || value.isBlank()) {
+                    Messages.showErrorDialog(project, "Commit prompt name and value are required.", "AI Test Generator")
+                    return@addActionListener
+                }
+                val map = parseYamlMap(commitPromptProfilesYamlField.text).toMutableMap()
+                map[name] = value
+                commitPromptProfilesYamlField.text = dumpYamlMap(map)
+                if (commitPromptProfileDefaultField.text.isBlank()) {
+                    commitPromptProfileDefaultField.text = name
+                }
+                commitPromptNewNameField.text = ""
+                commitPromptNewValueField.text = ""
+            }
+        }
+        return formSection("Commit Prompt Manager", listOf(
+            "New prompt name" to commitPromptNewNameField,
+            "New prompt value" to JScrollPane(commitPromptNewValueField),
+            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
+        ))
+    }
 
     private fun formSection(title: String, rows: List<Pair<String, JComponent>>): JComponent {
         val panel = JPanel(GridBagLayout())
@@ -500,11 +533,33 @@ class AiTestSettingsConfigurable(
     }
 
     private fun requirePromptProfiles(label: String, text: String) {
-        val parsed = org.yaml.snakeyaml.Yaml().load<Any?>(text) as? Map<*, *>
+        val parsed = Yaml().load<Any?>(text) as? Map<*, *>
             ?: throw IllegalArgumentException("$label must be a YAML map of profileName: promptTemplate")
         if (parsed.isEmpty()) {
             throw IllegalArgumentException("$label cannot be empty")
         }
+    }
+
+    private fun parseYamlMap(text: String): Map<String, String> {
+        val parsed = Yaml().load<Any?>(text) as? Map<*, *> ?: emptyMap<Any?, Any?>()
+        val result = linkedMapOf<String, String>()
+        parsed.forEach { (k, v) ->
+            val key = k?.toString()?.trim().orEmpty()
+            val value = v?.toString().orEmpty().trim()
+            if (key.isNotBlank() && value.isNotBlank()) {
+                result[key] = value
+            }
+        }
+        return result
+    }
+
+    private fun dumpYamlMap(value: Map<String, String>): String {
+        val options = DumperOptions().apply {
+            defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
+            indent = 2
+            isPrettyFlow = true
+        }
+        return Yaml(options).dump(value).trimEnd()
     }
 
     private fun updatePathLabel() {
