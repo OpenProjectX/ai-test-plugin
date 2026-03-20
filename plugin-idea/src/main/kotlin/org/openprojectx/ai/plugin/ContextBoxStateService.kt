@@ -10,16 +10,8 @@ import java.time.format.DateTimeFormatter
 @Service(Service.Level.PROJECT)
 class ContextBoxStateService(private val project: Project) {
 
-    data class Entry(
-        val className: String,
-        val targetPath: String,
-        val timestamp: String
-    )
-
     data class Snapshot(
-        val entries: List<Entry>,
-        val latestDiff: String,
-        val latestBranchSummary: String
+        val latestResult: String
     )
 
     companion object {
@@ -29,27 +21,29 @@ class ContextBoxStateService(private val project: Project) {
     }
 
     private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    private val entries = mutableListOf<Entry>()
-    private var latestDiff: String = "No generated diff yet."
-    private var latestBranchSummary: String = "No branch diff summary yet."
+    private var latestResult: String = "No result yet."
 
-    fun snapshot(): Snapshot = Snapshot(entries.toList(), latestDiff, latestBranchSummary)
+    fun snapshot(): Snapshot = Snapshot(latestResult)
 
     fun recordGeneration(className: String, targetPath: String, diff: String) {
-        entries.add(
-            0,
-            Entry(
-                className = className,
-                targetPath = targetPath,
-                timestamp = LocalDateTime.now().format(formatter)
-            )
-        )
-        latestDiff = diff.ifBlank { "No diff generated." }
+        val now = LocalDateTime.now().format(formatter)
+        latestResult = buildString {
+            appendLine("Type: Generated Code")
+            appendLine("Time: $now")
+            appendLine("Class: $className")
+            appendLine("Target: $targetPath")
+            appendLine()
+            appendLine("Code Diff:")
+            append(diff.ifBlank { "No diff generated." })
+        }.trimEnd()
         project.messageBus.syncPublisher(TOPIC).stateUpdated(snapshot())
     }
 
     fun recordBranchSummary(targetBranch: String, sourceBranch: String, summary: String) {
-        latestBranchSummary = buildString {
+        val now = LocalDateTime.now().format(formatter)
+        latestResult = buildString {
+            appendLine("Type: Branch Analysis")
+            appendLine("Time: $now")
             appendLine("Target Branch: $targetBranch")
             appendLine("Source Branch: $sourceBranch")
             appendLine()
