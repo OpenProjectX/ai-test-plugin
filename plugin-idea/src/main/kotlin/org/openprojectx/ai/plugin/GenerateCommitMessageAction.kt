@@ -31,7 +31,7 @@ class GenerateCommitMessageAction : AnAction("Generate Commit Message") {
                     }
 
                     indicator.text = "Calling LLM..."
-                    val message = AiCommitService(project).generate(diff)
+                    val message = AiCommitService(project).generate(diff = diff)
 
                     ApplicationManager.getApplication().invokeLater {
                         commitMessageUi.setCommitMessage(message.trim())
