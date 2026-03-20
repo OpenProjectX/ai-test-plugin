@@ -76,12 +76,16 @@ class AiTestSettingsConfigurable(
     private lateinit var branchDiffPromptField: JTextArea
     private lateinit var generationPromptProfileDefaultField: JTextField
     private lateinit var generationPromptProfilesYamlField: JTextArea
+    private lateinit var generationPromptNewNameField: JTextField
+    private lateinit var generationPromptNewValueField: JTextArea
     private lateinit var commitPromptProfileDefaultField: JTextField
     private lateinit var commitPromptProfilesYamlField: JTextArea
     private lateinit var commitPromptNewNameField: JTextField
     private lateinit var commitPromptNewValueField: JTextArea
     private lateinit var branchDiffPromptProfileDefaultField: JTextField
     private lateinit var branchDiffPromptProfilesYamlField: JTextArea
+    private lateinit var branchDiffPromptNewNameField: JTextField
+    private lateinit var branchDiffPromptNewValueField: JTextArea
 
     private var initialState: AiTestSettingsModel = AiTestSettingsModel()
 
@@ -143,12 +147,16 @@ class AiTestSettingsConfigurable(
         branchDiffPromptField = textArea(12)
         generationPromptProfileDefaultField = JTextField()
         generationPromptProfilesYamlField = textArea(12)
+        generationPromptNewNameField = JTextField()
+        generationPromptNewValueField = textArea(6)
         commitPromptProfileDefaultField = JTextField()
         commitPromptProfilesYamlField = textArea(12)
         commitPromptNewNameField = JTextField()
         commitPromptNewValueField = textArea(6)
         branchDiffPromptProfileDefaultField = JTextField()
         branchDiffPromptProfilesYamlField = textArea(12)
+        branchDiffPromptNewNameField = JTextField()
+        branchDiffPromptNewValueField = textArea(6)
 
         llmTemplateEnabled.addActionListener { toggleTemplateCards() }
         loginEnabled.addActionListener { toggleTemplateCards() }
@@ -291,26 +299,40 @@ class AiTestSettingsConfigurable(
             "Branch diff default profile" to branchDiffPromptProfileDefaultField,
             "Branch diff profiles (YAML map)" to JScrollPane(branchDiffPromptProfilesYamlField)
         )))
+        add(generationPromptManagerSection())
         add(commitPromptManagerSection())
+        add(branchDiffPromptManagerSection())
     }).apply { border = BorderFactory.createEmptyBorder() }
+
+    private fun generationPromptManagerSection(): JComponent {
+        val addButton = JButton("Add Test Prompt").apply {
+            addActionListener {
+                addPromptProfile(
+                    typeLabel = "Test",
+                    nameField = generationPromptNewNameField,
+                    valueField = generationPromptNewValueField,
+                    profilesYamlField = generationPromptProfilesYamlField,
+                    defaultField = generationPromptProfileDefaultField
+                )
+            }
+        }
+        return formSection("Test Prompt Manager", listOf(
+            "New prompt name" to generationPromptNewNameField,
+            "New prompt value" to JScrollPane(generationPromptNewValueField),
+            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
+        ))
+    }
 
     private fun commitPromptManagerSection(): JComponent {
         val addButton = JButton("Add Commit Prompt").apply {
             addActionListener {
-                val name = commitPromptNewNameField.text.trim()
-                val value = commitPromptNewValueField.text.trim()
-                if (name.isBlank() || value.isBlank()) {
-                    Messages.showErrorDialog(project, "Commit prompt name and value are required.", "AI Test Generator")
-                    return@addActionListener
-                }
-                val map = parseYamlMap(commitPromptProfilesYamlField.text).toMutableMap()
-                map[name] = value
-                commitPromptProfilesYamlField.text = dumpYamlMap(map)
-                if (commitPromptProfileDefaultField.text.isBlank()) {
-                    commitPromptProfileDefaultField.text = name
-                }
-                commitPromptNewNameField.text = ""
-                commitPromptNewValueField.text = ""
+                addPromptProfile(
+                    typeLabel = "Commit",
+                    nameField = commitPromptNewNameField,
+                    valueField = commitPromptNewValueField,
+                    profilesYamlField = commitPromptProfilesYamlField,
+                    defaultField = commitPromptProfileDefaultField
+                )
             }
         }
         return formSection("Commit Prompt Manager", listOf(
@@ -318,6 +340,48 @@ class AiTestSettingsConfigurable(
             "New prompt value" to JScrollPane(commitPromptNewValueField),
             "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
         ))
+    }
+
+    private fun branchDiffPromptManagerSection(): JComponent {
+        val addButton = JButton("Add Branch Diff Prompt").apply {
+            addActionListener {
+                addPromptProfile(
+                    typeLabel = "Branch Diff",
+                    nameField = branchDiffPromptNewNameField,
+                    valueField = branchDiffPromptNewValueField,
+                    profilesYamlField = branchDiffPromptProfilesYamlField,
+                    defaultField = branchDiffPromptProfileDefaultField
+                )
+            }
+        }
+        return formSection("Branch Diff Prompt Manager", listOf(
+            "New prompt name" to branchDiffPromptNewNameField,
+            "New prompt value" to JScrollPane(branchDiffPromptNewValueField),
+            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
+        ))
+    }
+
+    private fun addPromptProfile(
+        typeLabel: String,
+        nameField: JTextField,
+        valueField: JTextArea,
+        profilesYamlField: JTextArea,
+        defaultField: JTextField
+    ) {
+        val name = nameField.text.trim()
+        val value = valueField.text.trim()
+        if (name.isBlank() || value.isBlank()) {
+            Messages.showErrorDialog(project, "$typeLabel prompt name and value are required.", "AI Test Generator")
+            return
+        }
+        val map = parseYamlMap(profilesYamlField.text).toMutableMap()
+        map[name] = value
+        profilesYamlField.text = dumpYamlMap(map)
+        if (defaultField.text.isBlank()) {
+            defaultField.text = name
+        }
+        nameField.text = ""
+        valueField.text = ""
     }
 
     private fun formSection(title: String, rows: List<Pair<String, JComponent>>): JComponent {
