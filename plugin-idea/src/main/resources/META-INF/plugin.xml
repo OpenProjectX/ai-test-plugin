@@ -50,6 +50,8 @@
                 description="Analyze changes between current branch and selected branch/commit">
             <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
             <add-to-group group-id="Vcs.Log.Branches.ContextMenu" anchor="last"/>
+            <add-to-group group-id="Git.Branches.Popup" anchor="after" relative-to-action="Git.Checkout"/>
+            <add-to-group group-id="Git.Branches" anchor="after" relative-to-action="Git.Checkout"/>
         </action>
     </actions>
 </idea-plugin>
