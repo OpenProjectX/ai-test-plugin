@@ -119,7 +119,7 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
 
         val hint = JLabel("Click prompt name to expand.").apply {
             foreground = fgColor
-            font = font
+            this.font = font
         }
 
         val toolbar = JPanel(BorderLayout(8, 0)).apply {
