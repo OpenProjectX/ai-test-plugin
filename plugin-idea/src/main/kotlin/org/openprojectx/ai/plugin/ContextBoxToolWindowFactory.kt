@@ -50,18 +50,6 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
             border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
         }
 
-        val promptArea = JTextArea().apply {
-            isEditable = false
-            lineWrap = true
-            wrapStyleWord = true
-            font = commonFont
-            background = bgColor
-            foreground = fgColor
-            caretColor = fgColor
-            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-            text = "Select a prompt from the list to view full content."
-        }
-
         val promptCategoryTabs = JTabbedPane().apply {
             background = bgColor
             foreground = fgColor
@@ -90,6 +78,17 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
             promptCategoryTabs.removeAll()
             val promptMap = buildPromptLeafMap()
             promptMap.forEach { (category, items) ->
+                val promptArea = JTextArea().apply {
+                    isEditable = false
+                    lineWrap = true
+                    wrapStyleWord = true
+                    font = commonFont
+                    background = bgColor
+                    foreground = fgColor
+                    caretColor = fgColor
+                    border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                    text = "Select a prompt from the list to view full content."
+                }
                 val list = JList(items.toTypedArray()).apply {
                     selectionMode = ListSelectionModel.SINGLE_SELECTION
                     font = commonFont
@@ -104,12 +103,15 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                     promptArea.text = selected.content
                     promptArea.caretPosition = 0
                 }
-                val split = JSplitPane(JSplitPane.HORIZONTAL_SPLIT).apply {
-                    leftComponent = styledScrollPane(list)
-                    rightComponent = styledScrollPane(promptArea)
-                    resizeWeight = 0.35
+                val split = JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
+                    topComponent = styledScrollPane(list)
+                    bottomComponent = styledScrollPane(promptArea)
+                    resizeWeight = 0.4
                     border = BorderFactory.createEmptyBorder()
                     background = bgColor
+                }
+                if (items.isNotEmpty()) {
+                    list.selectedIndex = 0
                 }
                 promptCategoryTabs.addTab(category, split)
             }
