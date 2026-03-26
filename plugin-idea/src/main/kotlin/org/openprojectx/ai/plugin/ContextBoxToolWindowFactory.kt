@@ -12,14 +12,12 @@ import java.awt.Color
 import java.awt.FlowLayout
 import java.awt.Font
 import javax.swing.BorderFactory
-import javax.swing.DefaultListModel
+import javax.swing.BoxLayout
 import javax.swing.JButton
-import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.JSplitPane
 import javax.swing.JTabbedPane
 import javax.swing.JTextArea
-import javax.swing.ListSelectionModel
 import javax.swing.UIManager
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
@@ -111,6 +109,20 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
             return dumpYamlMap(map)
         }
 
+        fun renameYamlProfile(yaml: String, oldName: String, newName: String): String {
+            val map = parseYamlMap(yaml)
+            if (!map.containsKey(oldName) || map.containsKey(newName)) return yaml
+            val renamed = linkedMapOf<String, String>()
+            map.forEach { (key, value) ->
+                if (key == oldName) {
+                    renamed[newName] = value
+                } else {
+                    renamed[key] = value
+                }
+            }
+            return dumpYamlMap(renamed)
+        }
+
         fun savePromptValue(category: PromptCategory, name: String, value: String) {
             val model = LlmSettingsLoader.loadSettingsModel(project)
             val updated = when (category) {
@@ -190,34 +202,32 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                     border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
                     text = ""
                 }
-                val listModel = DefaultListModel<PromptLeaf>().apply {
-                    items.forEach { addElement(it) }
-                }
-                val list = JList(listModel).apply {
-                    selectionMode = ListSelectionModel.SINGLE_SELECTION
-                    font = commonFont
+                val buttonListPanel = JPanel().apply {
+                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
                     background = bgColor
-                    foreground = fgColor
                     border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
-                    selectionBackground = Color(0x2A, 0x2A, 0x2A)
-                    selectionForeground = fgColor
                 }
+                var selectedPromptName: String? = null
 
                 val editorPanel = JPanel(BorderLayout()).apply {
                     add(styledScrollPane(promptArea), BorderLayout.CENTER)
                     isVisible = false
                 }
 
-                list.addListSelectionListener {
-                    val selected = list.selectedValue
-                    if (selected == null) {
-                        promptArea.text = ""
-                        editorPanel.isVisible = false
-                    } else {
-                        promptArea.text = selected.content
-                        promptArea.caretPosition = 0
-                        editorPanel.isVisible = true
+                fun selectPrompt(leaf: PromptLeaf) {
+                    selectedPromptName = leaf.name
+                    promptArea.text = leaf.content
+                    promptArea.caretPosition = 0
+                    editorPanel.isVisible = true
+                }
+
+                items.forEach { leaf ->
+                    val button = JButton(leaf.name).apply {
+                        alignmentX = 0.0f
+                        horizontalAlignment = JButton.LEFT
+                        addActionListener { selectPrompt(leaf) }
                     }
+                    buttonListPanel.add(button)
                 }
 
                 val addButton = JButton("Add").apply {
@@ -237,15 +247,53 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                 val deleteButton = JButton("Delete").apply {
                     addActionListener {
                         if (category == PromptCategory.PULL_REQUEST) return@addActionListener
-                        val selected = list.selectedValue ?: return@addActionListener
-                        deletePrompt(category, selected.name)
+                        val selected = selectedPromptName ?: return@addActionListener
+                        deletePrompt(category, selected)
+                        refreshPromptTabs()
+                    }
+                }
+                val renameButton = JButton("Rename").apply {
+                    addActionListener {
+                        if (category == PromptCategory.PULL_REQUEST) return@addActionListener
+                        val selected = selectedPromptName ?: return@addActionListener
+                        val newName = Messages.showInputDialog(
+                            project,
+                            "Rename prompt '$selected' to:",
+                            "Rename Prompt",
+                            null
+                        )?.trim().orEmpty()
+                        if (newName.isBlank() || newName == selected) return@addActionListener
+
+                        val model = LlmSettingsLoader.loadSettingsModel(project)
+                        val renamedYaml = when (category) {
+                            PromptCategory.GENERATION -> renameYamlProfile(model.generationPromptProfilesYaml, selected, newName)
+                            PromptCategory.COMMIT -> renameYamlProfile(model.commitPromptProfilesYaml, selected, newName)
+                            PromptCategory.BRANCH_DIFF -> renameYamlProfile(model.branchDiffPromptProfilesYaml, selected, newName)
+                            PromptCategory.PULL_REQUEST -> return@addActionListener
+                        }
+                        val updated = when (category) {
+                            PromptCategory.GENERATION -> model.copy(
+                                generationPromptProfilesYaml = renamedYaml,
+                                generationPromptProfileDefault = if (model.generationPromptProfileDefault == selected) newName else model.generationPromptProfileDefault
+                            )
+                            PromptCategory.COMMIT -> model.copy(
+                                commitPromptProfilesYaml = renamedYaml,
+                                commitPromptProfileDefault = if (model.commitPromptProfileDefault == selected) newName else model.commitPromptProfileDefault
+                            )
+                            PromptCategory.BRANCH_DIFF -> model.copy(
+                                branchDiffPromptProfilesYaml = renamedYaml,
+                                branchDiffPromptProfileDefault = if (model.branchDiffPromptProfileDefault == selected) newName else model.branchDiffPromptProfileDefault
+                            )
+                            PromptCategory.PULL_REQUEST -> model
+                        }
+                        LlmSettingsLoader.saveSettingsModel(project, updated)
                         refreshPromptTabs()
                     }
                 }
                 val saveButton = JButton("Save").apply {
                     addActionListener {
-                        val selected = list.selectedValue ?: return@addActionListener
-                        savePromptValue(category, selected.name, promptArea.text)
+                        val selected = selectedPromptName ?: return@addActionListener
+                        savePromptValue(category, selected, promptArea.text)
                         refreshPromptTabs()
                     }
                 }
@@ -254,11 +302,12 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                     background = bgColor
                     add(addButton)
                     add(deleteButton)
+                    add(renameButton)
                     add(saveButton)
                 }
 
                 val split = JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
-                    topComponent = styledScrollPane(list)
+                    topComponent = styledScrollPane(buttonListPanel)
                     bottomComponent = editorPanel
                     resizeWeight = 0.45
                     border = BorderFactory.createEmptyBorder()
