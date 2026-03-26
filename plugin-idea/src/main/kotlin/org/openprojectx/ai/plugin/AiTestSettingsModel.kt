@@ -6,7 +6,7 @@ data class AiTestSettingsModel(
     val llmProvider: String = "openai-compatible",
     val llmModel: String = "",
     val llmEndpoint: String = "",
-    val llmTimeoutSeconds: String = "60",
+    val llmTimeoutSeconds: String = "180",
     val llmApiKey: String = "",
     val llmApiKeyEnv: String = "",
     val llmTemplateEnabled: Boolean = false,

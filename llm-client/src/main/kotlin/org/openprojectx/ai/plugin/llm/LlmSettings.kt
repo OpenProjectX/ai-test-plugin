@@ -3,7 +3,7 @@ package org.openprojectx.ai.plugin.llm
 data class LlmSettings(
     val provider: String,
     val model: String,
-    val timeoutSeconds: Long = 60,
+    val timeoutSeconds: Long = 180,
     val apiKey: String? = null,
     val endpoint: String? = null,
     val template: TemplateRequestConfig? = null,

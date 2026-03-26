@@ -31,7 +31,7 @@ object LlmProviderFactory {
             install(HttpTimeout) {
                 connectTimeoutMillis = TimeUnit.SECONDS.toMillis(settings.timeoutSeconds)
                 socketTimeoutMillis = TimeUnit.SECONDS.toMillis(settings.timeoutSeconds)
-//                requestTimeoutMillis = TimeUnit.SECONDS.toMillis(settings.timeoutSeconds)
+                requestTimeoutMillis = TimeUnit.SECONDS.toMillis(settings.timeoutSeconds)
             }
             install(Logging) {
                 logger = Logger.DEFAULT  // prints to stdout
