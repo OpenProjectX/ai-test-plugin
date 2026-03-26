@@ -2,14 +2,18 @@ package org.openprojectx.ai.plugin
 
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.FlowLayout
 import java.awt.Font
 import javax.swing.BorderFactory
+import javax.swing.DefaultListModel
+import javax.swing.JButton
 import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.JSplitPane
@@ -17,6 +21,8 @@ import javax.swing.JTabbedPane
 import javax.swing.JTextArea
 import javax.swing.ListSelectionModel
 import javax.swing.UIManager
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
 
 class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
 
@@ -25,6 +31,13 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
         val content: String
     ) {
         override fun toString(): String = name
+    }
+
+    enum class PromptCategory {
+        GENERATION,
+        COMMIT,
+        BRANCH_DIFF,
+        PULL_REQUEST
     }
 
     override fun shouldBeAvailable(project: Project): Boolean = true
@@ -62,24 +75,112 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                 border = BorderFactory.createLineBorder(borderColor)
             }
 
-        fun buildPromptLeafMap(): LinkedHashMap<String, List<PromptLeaf>> {
+        fun parseYamlMap(text: String): Map<String, String> {
+            val parsed = Yaml().load<Any?>(text) as? Map<*, *> ?: emptyMap<Any?, Any?>()
+            val result = linkedMapOf<String, String>()
+            parsed.forEach { (k, v) ->
+                val key = k?.toString()?.trim().orEmpty()
+                if (key.isNotBlank()) {
+                    result[key] = v?.toString().orEmpty()
+                }
+            }
+            return result
+        }
+
+        fun dumpYamlMap(value: Map<String, String>): String {
+            val options = DumperOptions().apply {
+                defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
+                indent = 2
+                isPrettyFlow = true
+            }
+            return Yaml(options).dump(value).trimEnd()
+        }
+
+        fun updateYamlProfile(yaml: String, name: String, value: String): String {
+            val map = parseYamlMap(yaml).toMutableMap()
+            map[name] = value
+            return dumpYamlMap(map)
+        }
+
+        fun removeYamlProfile(yaml: String, name: String): String {
+            val map = parseYamlMap(yaml).toMutableMap()
+            map.remove(name)
+            if (map.isEmpty()) {
+                map[PromptProfileSet.DEFAULT_NAME] = ""
+            }
+            return dumpYamlMap(map)
+        }
+
+        fun savePromptValue(category: PromptCategory, name: String, value: String) {
+            val model = LlmSettingsLoader.loadSettingsModel(project)
+            val updated = when (category) {
+                PromptCategory.GENERATION -> model.copy(
+                    generationPromptProfilesYaml = updateYamlProfile(model.generationPromptProfilesYaml, name, value)
+                )
+                PromptCategory.COMMIT -> model.copy(
+                    commitPromptProfilesYaml = updateYamlProfile(model.commitPromptProfilesYaml, name, value)
+                )
+                PromptCategory.BRANCH_DIFF -> model.copy(
+                    branchDiffPromptProfilesYaml = updateYamlProfile(model.branchDiffPromptProfilesYaml, name, value)
+                )
+                PromptCategory.PULL_REQUEST -> model.copy(pullRequestPrompt = value)
+            }
+            LlmSettingsLoader.saveSettingsModel(project, updated)
+        }
+
+        fun addPrompt(category: PromptCategory, name: String) {
+            val model = LlmSettingsLoader.loadSettingsModel(project)
+            val updated = when (category) {
+                PromptCategory.GENERATION -> model.copy(
+                    generationPromptProfilesYaml = updateYamlProfile(model.generationPromptProfilesYaml, name, "")
+                )
+                PromptCategory.COMMIT -> model.copy(
+                    commitPromptProfilesYaml = updateYamlProfile(model.commitPromptProfilesYaml, name, "")
+                )
+                PromptCategory.BRANCH_DIFF -> model.copy(
+                    branchDiffPromptProfilesYaml = updateYamlProfile(model.branchDiffPromptProfilesYaml, name, "")
+                )
+                PromptCategory.PULL_REQUEST -> return
+            }
+            LlmSettingsLoader.saveSettingsModel(project, updated)
+        }
+
+        fun deletePrompt(category: PromptCategory, name: String) {
+            val model = LlmSettingsLoader.loadSettingsModel(project)
+            val updated = when (category) {
+                PromptCategory.GENERATION -> model.copy(
+                    generationPromptProfilesYaml = removeYamlProfile(model.generationPromptProfilesYaml, name)
+                )
+                PromptCategory.COMMIT -> model.copy(
+                    commitPromptProfilesYaml = removeYamlProfile(model.commitPromptProfilesYaml, name)
+                )
+                PromptCategory.BRANCH_DIFF -> model.copy(
+                    branchDiffPromptProfilesYaml = removeYamlProfile(model.branchDiffPromptProfilesYaml, name)
+                )
+                PromptCategory.PULL_REQUEST -> return
+            }
+            LlmSettingsLoader.saveSettingsModel(project, updated)
+        }
+
+        fun buildPromptLeafMap(): LinkedHashMap<String, Pair<PromptCategory, List<PromptLeaf>>> {
             val config = runCatching { LlmSettingsLoader.loadConfig(project) }.getOrNull()
-                ?: return linkedMapOf("Error" to listOf(PromptLeaf("Load failed", "Unable to load .ai-test.yaml")))
+                ?: return linkedMapOf("Error" to (PromptCategory.PULL_REQUEST to listOf(PromptLeaf("Load failed", "Unable to load .ai-test.yaml"))))
             val prompts = config.prompts
             return linkedMapOf(
-                "Test Generation" to prompts.profiles.generation.items.entries.map { PromptLeaf(it.key, it.value) },
-                "Commit Message" to prompts.profiles.commitMessage.items.entries.map { PromptLeaf(it.key, it.value) },
-                "Branch Diff" to prompts.profiles.branchDiffSummary.items.entries.map { PromptLeaf(it.key, it.value) },
-                "Pull Request" to listOf(PromptLeaf("default", prompts.pullRequest))
+                "Test Generation" to (PromptCategory.GENERATION to prompts.profiles.generation.items.entries.map { PromptLeaf(it.key, it.value) }),
+                "Commit Message" to (PromptCategory.COMMIT to prompts.profiles.commitMessage.items.entries.map { PromptLeaf(it.key, it.value) }),
+                "Branch Diff" to (PromptCategory.BRANCH_DIFF to prompts.profiles.branchDiffSummary.items.entries.map { PromptLeaf(it.key, it.value) }),
+                "Pull Request" to (PromptCategory.PULL_REQUEST to listOf(PromptLeaf("default", prompts.pullRequest)))
             )
         }
 
         fun refreshPromptTabs() {
             promptCategoryTabs.removeAll()
             val promptMap = buildPromptLeafMap()
-            promptMap.forEach { (category, items) ->
+            promptMap.forEach { (categoryName, categoryAndItems) ->
+                val (category, items) = categoryAndItems
                 val promptArea = JTextArea().apply {
-                    isEditable = false
+                    isEditable = true
                     lineWrap = true
                     wrapStyleWord = true
                     font = commonFont
@@ -87,9 +188,12 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                     foreground = fgColor
                     caretColor = fgColor
                     border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-                    text = "Select a prompt from the list to view full content."
+                    text = ""
                 }
-                val list = JList(items.toTypedArray()).apply {
+                val listModel = DefaultListModel<PromptLeaf>().apply {
+                    items.forEach { addElement(it) }
+                }
+                val list = JList(listModel).apply {
                     selectionMode = ListSelectionModel.SINGLE_SELECTION
                     font = commonFont
                     background = bgColor
@@ -98,22 +202,76 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
                     selectionBackground = Color(0x2A, 0x2A, 0x2A)
                     selectionForeground = fgColor
                 }
-                list.addListSelectionListener {
-                    val selected = list.selectedValue ?: return@addListSelectionListener
-                    promptArea.text = selected.content
-                    promptArea.caretPosition = 0
+
+                val editorPanel = JPanel(BorderLayout()).apply {
+                    add(styledScrollPane(promptArea), BorderLayout.CENTER)
+                    isVisible = false
                 }
+
+                list.addListSelectionListener {
+                    val selected = list.selectedValue
+                    if (selected == null) {
+                        promptArea.text = ""
+                        editorPanel.isVisible = false
+                    } else {
+                        promptArea.text = selected.content
+                        promptArea.caretPosition = 0
+                        editorPanel.isVisible = true
+                    }
+                }
+
+                val addButton = JButton("Add").apply {
+                    addActionListener {
+                        if (category == PromptCategory.PULL_REQUEST) return@addActionListener
+                        val name = Messages.showInputDialog(
+                            project,
+                            "Enter prompt name for $categoryName",
+                            "Add Prompt",
+                            null
+                        )?.trim().orEmpty()
+                        if (name.isBlank()) return@addActionListener
+                        addPrompt(category, name)
+                        refreshPromptTabs()
+                    }
+                }
+                val deleteButton = JButton("Delete").apply {
+                    addActionListener {
+                        if (category == PromptCategory.PULL_REQUEST) return@addActionListener
+                        val selected = list.selectedValue ?: return@addActionListener
+                        deletePrompt(category, selected.name)
+                        refreshPromptTabs()
+                    }
+                }
+                val saveButton = JButton("Save").apply {
+                    addActionListener {
+                        val selected = list.selectedValue ?: return@addActionListener
+                        savePromptValue(category, selected.name, promptArea.text)
+                        refreshPromptTabs()
+                    }
+                }
+
+                val buttonRow = JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+                    background = bgColor
+                    add(addButton)
+                    add(deleteButton)
+                    add(saveButton)
+                }
+
                 val split = JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
                     topComponent = styledScrollPane(list)
-                    bottomComponent = styledScrollPane(promptArea)
-                    resizeWeight = 0.4
+                    bottomComponent = editorPanel
+                    resizeWeight = 0.45
                     border = BorderFactory.createEmptyBorder()
                     background = bgColor
                 }
-                if (items.isNotEmpty()) {
-                    list.selectedIndex = 0
+
+                val categoryPanel = JPanel(BorderLayout(0, 8)).apply {
+                    background = bgColor
+                    add(buttonRow, BorderLayout.NORTH)
+                    add(split, BorderLayout.CENTER)
                 }
-                promptCategoryTabs.addTab(category, split)
+
+                promptCategoryTabs.addTab(categoryName, categoryPanel)
             }
         }
 

@@ -17,13 +17,17 @@ import javax.swing.JButton
 import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
+import javax.swing.DefaultListModel
 import javax.swing.JLabel
+import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.JPasswordField
 import javax.swing.JScrollPane
+import javax.swing.JSplitPane
 import javax.swing.JTabbedPane
 import javax.swing.JTextArea
 import javax.swing.JTextField
+import javax.swing.ListSelectionModel
 import javax.swing.SwingConstants
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
@@ -305,83 +309,148 @@ class AiTestSettingsConfigurable(
     }).apply { border = BorderFactory.createEmptyBorder() }
 
     private fun generationPromptManagerSection(): JComponent {
-        val addButton = JButton("Add Test Prompt").apply {
-            addActionListener {
-                addPromptProfile(
-                    typeLabel = "Test",
-                    nameField = generationPromptNewNameField,
-                    valueField = generationPromptNewValueField,
-                    profilesYamlField = generationPromptProfilesYamlField,
-                    defaultField = generationPromptProfileDefaultField
-                )
-            }
-        }
-        return formSection("Test Prompt Manager", listOf(
-            "New prompt name" to generationPromptNewNameField,
-            "New prompt value" to JScrollPane(generationPromptNewValueField),
-            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
-        ))
+        return buildInteractivePromptManagerSection(
+            title = "Test Prompt Manager",
+            typeLabel = "Test",
+            profilesYamlField = generationPromptProfilesYamlField,
+            defaultField = generationPromptProfileDefaultField
+        )
     }
 
     private fun commitPromptManagerSection(): JComponent {
-        val addButton = JButton("Add Commit Prompt").apply {
-            addActionListener {
-                addPromptProfile(
-                    typeLabel = "Commit",
-                    nameField = commitPromptNewNameField,
-                    valueField = commitPromptNewValueField,
-                    profilesYamlField = commitPromptProfilesYamlField,
-                    defaultField = commitPromptProfileDefaultField
-                )
-            }
-        }
-        return formSection("Commit Prompt Manager", listOf(
-            "New prompt name" to commitPromptNewNameField,
-            "New prompt value" to JScrollPane(commitPromptNewValueField),
-            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
-        ))
+        return buildInteractivePromptManagerSection(
+            title = "Commit Prompt Manager",
+            typeLabel = "Commit",
+            profilesYamlField = commitPromptProfilesYamlField,
+            defaultField = commitPromptProfileDefaultField
+        )
     }
 
     private fun branchDiffPromptManagerSection(): JComponent {
-        val addButton = JButton("Add Branch Diff Prompt").apply {
-            addActionListener {
-                addPromptProfile(
-                    typeLabel = "Branch Diff",
-                    nameField = branchDiffPromptNewNameField,
-                    valueField = branchDiffPromptNewValueField,
-                    profilesYamlField = branchDiffPromptProfilesYamlField,
-                    defaultField = branchDiffPromptProfileDefaultField
-                )
-            }
-        }
-        return formSection("Branch Diff Prompt Manager", listOf(
-            "New prompt name" to branchDiffPromptNewNameField,
-            "New prompt value" to JScrollPane(branchDiffPromptNewValueField),
-            "Action" to JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply { add(addButton) }
-        ))
+        return buildInteractivePromptManagerSection(
+            title = "Branch Diff Prompt Manager",
+            typeLabel = "Branch Diff",
+            profilesYamlField = branchDiffPromptProfilesYamlField,
+            defaultField = branchDiffPromptProfileDefaultField
+        )
     }
 
-    private fun addPromptProfile(
+    private fun buildInteractivePromptManagerSection(
+        title: String,
         typeLabel: String,
-        nameField: JTextField,
-        valueField: JTextArea,
         profilesYamlField: JTextArea,
         defaultField: JTextField
-    ) {
-        val name = nameField.text.trim()
-        val value = valueField.text.trim()
-        if (name.isBlank() || value.isBlank()) {
-            Messages.showErrorDialog(project, "$typeLabel prompt name and value are required.", "AI Test Generator")
-            return
+    ): JComponent {
+        val listModel = DefaultListModel<String>()
+        val nameList = JList(listModel).apply {
+            selectionMode = ListSelectionModel.SINGLE_SELECTION
         }
-        val map = parseYamlMap(profilesYamlField.text).toMutableMap()
-        map[name] = value
-        profilesYamlField.text = dumpYamlMap(map)
-        if (defaultField.text.isBlank()) {
-            defaultField.text = name
+        val editorArea = textArea(8)
+        val editorScroll = JScrollPane(editorArea)
+        val editorPanel = JPanel(BorderLayout(0, 8)).apply {
+            add(editorScroll, BorderLayout.CENTER)
+            isVisible = false
         }
-        nameField.text = ""
-        valueField.text = ""
+
+        fun refreshList(selectedName: String? = null) {
+            val map = parseYamlMap(profilesYamlField.text)
+            listModel.clear()
+            map.keys.forEach { listModel.addElement(it) }
+            when {
+                selectedName != null && map.containsKey(selectedName) -> nameList.setSelectedValue(selectedName, true)
+                listModel.size() > 0 -> nameList.selectedIndex = 0
+                else -> {
+                    nameList.clearSelection()
+                    editorPanel.isVisible = false
+                }
+            }
+        }
+
+        nameList.addListSelectionListener {
+            val selected = nameList.selectedValue
+            if (selected == null) {
+                editorPanel.isVisible = false
+                editorArea.text = ""
+            } else {
+                editorPanel.isVisible = true
+                editorArea.text = parseYamlMap(profilesYamlField.text)[selected].orEmpty()
+                editorArea.caretPosition = 0
+            }
+        }
+
+        val addButton = JButton("Add").apply {
+            addActionListener {
+                val name = Messages.showInputDialog(
+                    project,
+                    "Enter $typeLabel prompt name",
+                    "Add Prompt",
+                    null
+                )?.trim().orEmpty()
+                if (name.isBlank()) return@addActionListener
+                val map = parseYamlMap(profilesYamlField.text).toMutableMap()
+                if (map.containsKey(name)) {
+                    Messages.showErrorDialog(project, "$typeLabel prompt '$name' already exists.", "AI Test Generator")
+                    return@addActionListener
+                }
+                map[name] = ""
+                profilesYamlField.text = dumpYamlMap(map)
+                if (defaultField.text.isBlank()) {
+                    defaultField.text = name
+                }
+                refreshList(name)
+            }
+        }
+
+        val deleteButton = JButton("Delete").apply {
+            addActionListener {
+                val selected = nameList.selectedValue ?: return@addActionListener
+                val map = parseYamlMap(profilesYamlField.text).toMutableMap()
+                map.remove(selected)
+                if (map.isEmpty()) {
+                    map[PromptProfileSet.DEFAULT_NAME] = ""
+                }
+                profilesYamlField.text = dumpYamlMap(map)
+                if (defaultField.text == selected) {
+                    defaultField.text = map.keys.firstOrNull().orEmpty()
+                }
+                refreshList()
+            }
+        }
+
+        val saveButton = JButton("Save").apply {
+            addActionListener {
+                val selected = nameList.selectedValue ?: return@addActionListener
+                val map = parseYamlMap(profilesYamlField.text).toMutableMap()
+                map[selected] = editorArea.text
+                profilesYamlField.text = dumpYamlMap(map)
+                refreshList(selected)
+            }
+        }
+
+        val buttonRow = JPanel(FlowLayout(FlowLayout.LEFT, 8, 0)).apply {
+            add(addButton)
+            add(deleteButton)
+            add(saveButton)
+        }
+
+        val split = JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
+            topComponent = JScrollPane(nameList)
+            bottomComponent = editorPanel
+            resizeWeight = 0.4
+            border = BorderFactory.createEmptyBorder()
+        }
+
+        refreshList()
+
+        return JPanel(BorderLayout(0, 8)).apply {
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(title),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            )
+            add(buttonRow, BorderLayout.NORTH)
+            add(split, BorderLayout.CENTER)
+            maximumSize = Dimension(Int.MAX_VALUE, 420)
+        }
     }
 
     private fun formSection(title: String, rows: List<Pair<String, JComponent>>): JComponent {
