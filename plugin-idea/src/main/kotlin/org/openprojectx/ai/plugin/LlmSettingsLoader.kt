@@ -49,7 +49,7 @@ object LlmSettingsLoader {
             llmProvider = llm.string("provider").ifBlank { "openai-compatible" },
             llmModel = llm.string("model"),
             llmEndpoint = llm.string("endpoint"),
-            llmTimeoutSeconds = llm.string("timeoutSeconds").ifBlank { "60" },
+            llmTimeoutSeconds = llm.string("timeoutSeconds").ifBlank { "180" },
             llmApiKey = llm.string("apiKey"),
             llmApiKeyEnv = llm.string("apiKeyEnv"),
             llmTemplateEnabled = template != null,
@@ -183,9 +183,9 @@ object LlmSettingsLoader {
         val timeoutSeconds = when (val v = llm["timeoutSeconds"]) {
             is Number -> v.toLong()
             is String -> v.trim().toLongOrNull()
-            null -> 60L
+            null -> 180L
             else -> error("Invalid YAML: llm.timeoutSeconds must be a number or string number")
-        } ?: 60L
+        } ?: 180L
 
         val endpoint = (llm["endpoint"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
 
@@ -302,6 +302,7 @@ object LlmSettingsLoader {
           endpoint: https://api.openai.com/v1/chat/completions
           model: gpt-4.1
           apiKeyEnv: OPENAI_API_KEY
+          timeoutSeconds: 180
 
         generation:
           defaults:
