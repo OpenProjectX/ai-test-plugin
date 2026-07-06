@@ -52,6 +52,7 @@ class AiTestSettingsConfigurable(
     private lateinit var apiKeyEnvField: JTextField
     private lateinit var httpDisableTlsVerification: JCheckBox
     private lateinit var showLogTabCheckbox: JCheckBox
+    private lateinit var showSkillManagerTabCheckbox: JCheckBox
 
     private lateinit var sharedUsernameField: JTextField
     private lateinit var sharedPasswordField: JPasswordField
@@ -156,6 +157,7 @@ class AiTestSettingsConfigurable(
         apiKeyEnvField = JTextField()
         httpDisableTlsVerification = JCheckBox("Disable TLS certificate verification (insecure, use only on trusted networks)")
         showLogTabCheckbox = JCheckBox("Show Log tab in AI Context Box")
+        showSkillManagerTabCheckbox = JCheckBox("Show Skill Manager tab in AI Context Box")
         sharedUsernameField = JTextField()
         sharedPasswordField = JPasswordField()
         advancedModeCheckbox = JCheckBox("Advanced settings").apply {
@@ -452,7 +454,8 @@ class AiTestSettingsConfigurable(
             "" to httpDisableTlsVerification
         )))
         add(formSection("UI", listOf(
-            "" to showLogTabCheckbox
+            "" to showLogTabCheckbox,
+            "" to showSkillManagerTabCheckbox
         )))
         add(sectionWithToggle(llmTemplateEnabled, llmTemplatePanel).also { llmTemplateCardPanel = it })
     })
@@ -917,6 +920,7 @@ class AiTestSettingsConfigurable(
         llmApiKeyEnv = apiKeyEnvField.text.trim(),
         httpDisableTlsVerification = httpDisableTlsVerification.isSelected,
         showLogTab = showLogTabCheckbox.isSelected,
+        showSkillManagerTab = showSkillManagerTabCheckbox.isSelected,
         advancedMode = advancedModeCheckbox.isSelected,
         llmTemplateEnabled = llmTemplateEnabled.isSelected,
         llmTemplateMethod = llmTemplateMethod.selectedItem?.toString().orEmpty(),
@@ -976,6 +980,7 @@ class AiTestSettingsConfigurable(
         apiKeyEnvField.text = state.llmApiKeyEnv
         httpDisableTlsVerification.isSelected = state.httpDisableTlsVerification
         showLogTabCheckbox.isSelected = state.showLogTab
+        showSkillManagerTabCheckbox.isSelected = state.showSkillManagerTab
         advancedModeCheckbox.isSelected = state.advancedMode
 
         llmTemplateEnabled.isSelected = state.llmTemplateEnabled
@@ -1152,6 +1157,7 @@ class AiTestSettingsConfigurable(
         llmApiKeyEnv = state.llmApiKeyEnv,
         httpDisableTlsVerification = state.httpDisableTlsVerification,
         showLogTab = state.showLogTab,
+        showSkillManagerTab = state.showSkillManagerTab,
         llmTemplateEnabled = state.llmTemplateEnabled,
         llmTemplateMethod = state.llmTemplateMethod,
         llmTemplateUrl = state.llmTemplateUrl,

@@ -510,6 +510,7 @@ object LlmSettingsLoader {
             llmApiKeyEnv = llm.string("apiKeyEnv"),
             httpDisableTlsVerification = http?.get("disableTlsVerification") as? Boolean ?: true,
             showLogTab = ui["showLogTab"] as? Boolean ?: true,
+            showSkillManagerTab = ui["showSkillManagerTab"] as? Boolean ?: false,
             advancedMode = ui["advancedMode"] as? Boolean ?: false,
             llmTemplateEnabled = template != null,
             llmTemplateMethod = template.string("method").ifBlank { "POST" },
@@ -1187,6 +1188,7 @@ object LlmSettingsLoader {
     private fun buildUiMap(existing: Map<*, *>?, model: AiTestSettingsModel): MutableMap<String, Any> {
         val ui = existing.toMutableLinkedMap()
         ui["showLogTab"] = model.showLogTab
+        ui["showSkillManagerTab"] = model.showSkillManagerTab
         ui["advancedMode"] = model.advancedMode
         return ui
     }

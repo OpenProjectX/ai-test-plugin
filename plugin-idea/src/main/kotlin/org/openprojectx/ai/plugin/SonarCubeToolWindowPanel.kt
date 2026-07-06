@@ -624,6 +624,8 @@ object SonarCubeToolWindowPanel {
                 background = Color(0x11, 0x1C, 0x2F)
                 font = commonFont.deriveFont(Font.PLAIN, 11f)
                 toolTipText = "SonarQube project key"
+                preferredSize = Dimension(preferredSize.width.coerceAtLeast(220), 28)
+                minimumSize = Dimension(160, 28)
                 addActionListener { // Enter key
                     SonarQubeProjectSettings.getInstance(project).projectKey = text.trim()
                     if (scanMode == ScanMode.ONLINE) load()
@@ -658,27 +660,34 @@ object SonarCubeToolWindowPanel {
                     reportDate.text = ""
                 }
             }
-            add(JPanel(BorderLayout()).apply {
+            add(JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
                 isOpaque = false
-                add(JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+                border = BorderFactory.createEmptyBorder(0, 0, 4, 0)
+                add(JPanel(BorderLayout()).apply {
                     isOpaque = false
-                    add(JLabel("Sonar Cube").apply { foreground = fgColor })
-                    add(modeCombo)
-                }, BorderLayout.WEST)
-                add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
+                    add(JPanel(FlowLayout(FlowLayout.LEFT, 6, 3)).apply {
+                        isOpaque = false
+                        add(JLabel("Sonar Cube").apply { foreground = fgColor })
+                        add(modeCombo)
+                    }, BorderLayout.WEST)
+                    add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 3)).apply {
+                        isOpaque = false
+                        add(filterCount)
+                        add(reportDate)
+                        add(refreshButton)
+                    }, BorderLayout.EAST)
+                })
+                add(JPanel(BorderLayout(6, 0)).apply {
                     isOpaque = false
-                    add(filterCount)
-                    add(reportDate)
-                    add(refreshButton)
-                }, BorderLayout.EAST)
-                add(JPanel(FlowLayout(FlowLayout.CENTER, 6, 0)).apply {
-                    isOpaque = false
+                    border = BorderFactory.createEmptyBorder(2, 0, 0, 0)
                     add(JLabel("Project Key:").apply {
                         foreground = Color(0x94, 0xA3, 0xB8)
                         font = commonFont.deriveFont(Font.PLAIN, 11f)
-                    })
-                    add(projectKeyField)
-                }, BorderLayout.CENTER)
+                        border = BorderFactory.createEmptyBorder(0, 0, 0, 2)
+                    }, BorderLayout.WEST)
+                    add(projectKeyField, BorderLayout.CENTER)
+                })
             }, BorderLayout.NORTH)
             add(filterPanel, BorderLayout.CENTER)
         }
@@ -700,6 +709,11 @@ object SonarCubeToolWindowPanel {
                         return
                     }
 
+                    val targetContext = SonarQubeAiFixCodeContext.findTarget(sourceCode, issue.line)
+                    val targetCode = targetContext?.code ?: sourceCode
+                    val classCode = targetContext?.containingClassCode ?: sourceCode
+                    val targetDescription = targetContext?.description ?: "entire file"
+
                     indicator.text = "Calling AI to generate fix..."
                     val prompt = AiPromptDefaults.render(
                         AiPromptDefaults.SONARQUBE_FIX_ISSUE,
@@ -710,7 +724,9 @@ object SonarCubeToolWindowPanel {
                             "message" to issue.message,
                             "filePath" to issue.path,
                             "line" to (issue.line?.toString() ?: "unknown"),
-                            "sourceCode" to sourceCode
+                            "targetDescription" to targetDescription,
+                            "classCode" to classCode,
+                            "targetCode" to targetCode
                         )
                     )
                     val response = LlmAuthSessionService.getInstance(project).withReloginOnUnauthorized { settings ->
@@ -719,7 +735,7 @@ object SonarCubeToolWindowPanel {
                     }
 
                     ApplicationManager.getApplication().invokeLater {
-                        handleFixResponse(project, issue, response, sourceCode, onFixApplied)
+                        handleFixResponse(project, issue, response, sourceCode, targetContext, onFixApplied)
                     }
                 } catch (ex: Exception) {
                     ApplicationManager.getApplication().invokeLater {
@@ -730,13 +746,21 @@ object SonarCubeToolWindowPanel {
         })
     }
 
-    private fun handleFixResponse(project: Project, issue: SonarCubeIssue, response: String, originalCode: String, onFixApplied: (() -> Unit)? = null) {
+    private fun handleFixResponse(
+        project: Project,
+        issue: SonarCubeIssue,
+        response: String,
+        originalCode: String,
+        targetContext: SonarQubeAiFixCodeContext.Target?,
+        onFixApplied: (() -> Unit)? = null
+    ) {
         val explanation = extractExplanation(response)
         val codeBlock = extractCodeBlock(response)
         if (codeBlock != null) {
-            val dialog = SonarQubeFixDialog(project, issue, explanation, originalCode, codeBlock)
+            val mergedCode = SonarQubeAiFixCodeContext.mergeFixedTarget(originalCode, targetContext, codeBlock)
+            val dialog = SonarQubeFixDialog(project, issue, explanation, originalCode, mergedCode)
             if (dialog.showAndGet()) {
-                applyCodeChange(project, issue.path, codeBlock, onFixApplied)
+                applyCodeChange(project, issue.path, mergedCode, onFixApplied)
             }
             return
         }
@@ -753,7 +777,8 @@ object SonarCubeToolWindowPanel {
                 null
             )
             if (choice >= 0 && choice < options.size) {
-                applyCodeChange(project, issue.path, options[choice].code, onFixApplied)
+                val mergedCode = SonarQubeAiFixCodeContext.mergeFixedTarget(originalCode, targetContext, options[choice].code)
+                applyCodeChange(project, issue.path, mergedCode, onFixApplied)
             }
             return
         }

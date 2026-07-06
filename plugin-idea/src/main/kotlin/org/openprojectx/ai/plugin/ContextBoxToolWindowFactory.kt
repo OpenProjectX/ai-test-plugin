@@ -561,16 +561,39 @@ class ContextBoxToolWindowFactory : ToolWindowFactory, DumbAware {
             }
         }
 
+        val sonarCubeTabLoadController = SonarCubeTabLoadController(SONAR_CUBE_TAB)
+        val sonarCubePlaceholder = JPanel(BorderLayout()).apply {
+            background = bgColor
+            foreground = fgColor
+            add(JLabel("Select Sonar Cube to load configured SonarQube results.").apply {
+                foreground = ThemeColors.emptyText
+                font = commonFont.deriveFont(Font.ITALIC, 13f)
+                horizontalAlignment = SwingConstants.CENTER
+            }, BorderLayout.CENTER)
+        }
+
+        val settingsModel = LlmSettingsLoader.loadSettingsModel(project)
         val tabs = JTabbedPane().apply {
             insertTab(GUIDE_TAB, OpenProjectXIcons.GenerateTests, createReadmePanel(project, bgColor, fgColor, borderColor, commonFont), "Feature guide and setup progress", 0)
             addTab(CONTEXT_TAB, chatPanel)
             addTab(PROMPT_MANAGER_TAB, createPromptManagerPanel(project, bgColor, fgColor, borderColor, commonFont))
-            addTab(SKILL_MANAGER_TAB, createSkillManagerPanel(project, bgColor, fgColor, borderColor, commonFont))
-            addTab(SONAR_CUBE_TAB, SonarCubeToolWindowPanel.create(project, bgColor, fgColor, borderColor, commonFont))
-            if (LlmSettingsLoader.loadSettingsModel(project).showLogTab) {
+            if (ContextBoxTabVisibility.showSkillManager(settingsModel)) {
+                addTab(SKILL_MANAGER_TAB, createSkillManagerPanel(project, bgColor, fgColor, borderColor, commonFont))
+            }
+            addTab(SONAR_CUBE_TAB, sonarCubePlaceholder)
+            if (settingsModel.showLogTab) {
                 addTab(LOG_TAB, createLogPanel(bgColor, fgColor, borderColor, commonFont))
             }
         }
+        fun loadSonarCubeTabIfSelected() {
+            val selectedTitle = tabs.selectedIndex.takeIf { it >= 0 }?.let(tabs::getTitleAt)
+            if (!sonarCubeTabLoadController.shouldLoadForSelection(selectedTitle)) return
+            val index = tabs.indexOfTab(SONAR_CUBE_TAB)
+            if (index >= 0) {
+                tabs.setComponentAt(index, SonarCubeToolWindowPanel.create(project, bgColor, fgColor, borderColor, commonFont))
+            }
+        }
+        tabs.addChangeListener { loadSonarCubeTabIfSelected() }
         // Some actions record their result before showing the tool window. In that case,
         // open Context immediately instead of hiding the existing result behind Guide.
         if (initialSnapshot.history.isNotEmpty()) {

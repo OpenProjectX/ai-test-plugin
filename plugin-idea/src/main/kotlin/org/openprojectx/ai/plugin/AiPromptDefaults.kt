@@ -154,24 +154,31 @@ object AiPromptDefaults {
         - File: {{filePath}}
         - Line: {{line}}
 
-        Source file content:
+        Containing class context:
         ```java
-        {{sourceCode}}
+        {{classCode}}
+        ```
+
+        Target method/function to fix ({{targetDescription}}):
+        ```java
+        {{targetCode}}
         ```
 
         Requirements:
         - First, explain the problem in 2-3 sentences (what the issue means and why it matters).
-        - If the fix is unambiguous and safe, output a fenced code block (```java ... ```) containing the corrected ENTIRE file. Do not include any other explanation beyond the 2-3 sentence intro.
+        - Use the containing class context to ensure the fixed method compiles and works with fields, helper methods, imports, overloads, and nearby code in the same class.
+        - If the fix is unambiguous and safe, output a fenced code block (```java ... ```) containing only the corrected target method/function/block. Do not include the entire class or file.
+        - Keep the target method/function signature and surrounding indentation consistent with the original target method/function.
         - If there are multiple valid approaches (e.g., different library choices, architectural trade-offs), output a JSON array of options:
           ```json
           [
-            {"label": "Option A description", "code": "fixed code for option A"},
-            {"label": "Option B description", "code": "fixed code for option B"}
+            {"label": "Option A description", "code": "fixed target method/function/block for option A"},
+            {"label": "Option B description", "code": "fixed target method/function/block for option B"}
           ]
           ```
-          Each option's "code" field must contain the full corrected file.
-        - Do NOT invent code not present in the source.
-        - Preserve all existing imports and add only necessary new ones.
+          Each option's "code" field must contain only the corrected target method/function/block.
+        - Do NOT invent unavailable helpers or fields. If a helper is needed, use only helpers already visible in the containing class.
+        - Do not add imports because only a method-level replacement will be applied.
         - Keep formatting consistent with the original.
     """
     val GENERATION_WRAPPER: String = PromptBuilder.DEFAULT_WRAPPER_TEMPLATE
